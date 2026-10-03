@@ -11,7 +11,13 @@ namespace {
     GLfloat vertices[] {
         -0.5f, -0.5f, 0.f,
          0.5f, -0.5f, 0.f,
-         0.0f,  0.5f, 0.f,
+        -0.5f,  0.5f, 0.f,
+         0.5f,  0.5f, 0.f,
+    };
+
+    GLuint indices[] = {
+        0, 1, 2,
+        1, 2, 3
     };
 
     std::string loadShaderSource(const char* filename) {
@@ -23,7 +29,7 @@ namespace {
             Logger::getInstance().printErr("Open shader file failed");
             return nullptr;
         }
-        
+
         file.exceptions(std::ios::badbit | std::ios::failbit);
         try {
             std::stringstream ss;
@@ -35,7 +41,7 @@ namespace {
             return nullptr;
         }
     }
-    
+
     GLuint compileShader(GLenum shaderType, const char* shaderSource) {
         GLuint shader = glCreateShader(shaderType);
         glShaderSource(shader, 1, &shaderSource, nullptr);
@@ -55,12 +61,12 @@ namespace {
         }
         return shader;
     }
-    
+
     GLuint linkShaderProgram() {
         std::string shaderSource = loadShaderSource("vertex.glsl");
         if (shaderSource.empty())
             return 0;
-        
+
         GLuint vertexShader = compileShader(GL_VERTEX_SHADER, shaderSource.c_str());
         if (!vertexShader)
             return 0;
@@ -68,8 +74,8 @@ namespace {
         shaderSource = loadShaderSource("fragment.glsl");
         if (shaderSource.empty())
             return 0;
-        
-        GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, shaderSource.c_str()); 
+
+        GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, shaderSource.c_str());
         if (!fragmentShader)
             return 0;
 
@@ -93,9 +99,9 @@ namespace {
 
         glDetachShader(program, fragmentShader);
         glDetachShader(program, vertexShader);
-        glDeleteShader(fragmentShader);        
+        glDeleteShader(fragmentShader);
         glDeleteShader(vertexShader);
-        
+
         return program;
     }
 }
@@ -106,7 +112,7 @@ Renderer::Renderer(): _vao(0), _vbo(0), _ebo(0), _shader(linkShaderProgram()) {
         glGenVertexArrays(1, &_vao);
         glBindVertexArray(_vao);
 
-        // 2) bind and setting vbo 
+        // 2) bind and setting vbo
         glGenBuffers(1, &_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, _vbo);
         // copy my data to buffer
@@ -123,10 +129,16 @@ Renderer::Renderer(): _vao(0), _vbo(0), _ebo(0), _shader(linkShaderProgram()) {
         );
         glEnableVertexAttribArray(0);
 
+        // 4) bind and setting ebo
+        glGenBuffers(1, &_ebo);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
         // unbind all objects
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        
+
+
         glClearColor(0.2f, 0.3f, 0.3f, 1.f);
         glBindVertexArray(_vao);
         glUseProgram(_shader);
@@ -139,7 +151,10 @@ Renderer::~Renderer() {
     if (_vbo) glDeleteBuffers(1, &_vbo);
 }
 
+void Renderer::setWireframeMode() { glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); }
+void Renderer::setNormalMode() { glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
+
 void Renderer::draw() {
     glClear(GL_COLOR_BUFFER_BIT);
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
 }

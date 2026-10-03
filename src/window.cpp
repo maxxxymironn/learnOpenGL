@@ -1,17 +1,30 @@
 #include "window.hpp"
+#include "states.hpp"
 
 #include "logger.hpp"
+#include "states.hpp"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
-void Window::_setKeyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
+void Window::_keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (self) {
         if (key == GLFW_KEY_ESCAPE) {
             glfwSetWindowShouldClose(window, GLFW_TRUE);
+            return;
+        }
+
+        if (action == GLFW_PRESS) {
+            if (key == GLFW_KEY_M) {
+                States::updatePolygonMode();
+            }
         }
     }
+}
+
+void Window::_framebufferSizeCallback(GLFWwindow *window, int width, int height) {
+    glViewport(0, 0, width, height);
 }
 
 Window::Window(): _handle(nullptr), _status(0) {
@@ -40,14 +53,16 @@ Window::Window(): _handle(nullptr), _status(0) {
     }
 
     if (_status == 0) {
+        glfwSetWindowSizeLimits(_handle, 150, 150, GLFW_DONT_CARE, GLFW_DONT_CARE);
         glfwSetWindowUserPointer(_handle, this);
         glfwGetFramebufferSize(_handle, &_width, &_height);
-        
+
         glfwSwapInterval(GLFW_TRUE);
         
         glViewport(0, 0, _width, _height);
 
-        glfwSetKeyCallback(_handle, _setKeyCallback);
+        glfwSetKeyCallback(_handle, _keyCallback);
+        glfwSetFramebufferSizeCallback(_handle, _framebufferSizeCallback);
     }
 }
 

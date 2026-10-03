@@ -8,7 +8,8 @@ class Window {
     int _height;
     bool _status;
 
-    static void _setKeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void _keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
+    static void _framebufferSizeCallback(GLFWwindow* window, int width, int height);
 
 public:
     Window();

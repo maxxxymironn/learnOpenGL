@@ -11,4 +11,7 @@ public:
     bool initializeSuccess() { return _shader != 0; }
 
     void draw();
+
+    void setWireframeMode();
+    void setNormalMode();
 };
