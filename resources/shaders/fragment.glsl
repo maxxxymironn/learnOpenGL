@@ -1,7 +1,11 @@
 #version 330 core
 
+in vec3 f_color;
+
 out vec4 color;
 
+uniform float colorCoeff;
+
 void main() {
-    color = vec4(1.0, 0.5, 0.2, 1.0);
+    color = vec4(f_color * colorCoeff, 1.0);
 }

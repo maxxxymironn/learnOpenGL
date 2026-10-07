@@ -6,19 +6,20 @@
 #include <sstream>
 #include <string>
 #include <fstream>
+#include <iostream>
 
 namespace {
-    GLfloat vertices[] {
-        -0.5f, -0.5f, 0.f,
-         0.5f, -0.5f, 0.f,
-        -0.5f,  0.5f, 0.f,
-         0.5f,  0.5f, 0.f,
+    constexpr GLfloat vertices[] {
+        -0.5f, -0.5f, 1.f, 0.f, 0.f,
+         0.5f, -0.5f, 0.f, 1.f, 0.f,
+        -0.5f,  0.5f, 1.f, 0.f, 1.f,
+         0.5f,  0.5f, 0.f, 0.f, 1.f,
     };
 
-    GLuint indices[] = {
+    constexpr GLuint indices[] = {
         0, 1, 2,
         1, 2, 3
-    };
+    };    
 
     std::string loadShaderSource(const char* filename) {
         std::string shaderPath(SHADERS_DIR);
@@ -29,7 +30,7 @@ namespace {
             Logger::getInstance().printErr("Open shader file failed");
             return nullptr;
         }
-
+        
         file.exceptions(std::ios::badbit | std::ios::failbit);
         try {
             std::stringstream ss;
@@ -119,15 +120,22 @@ Renderer::Renderer(): _vao(0), _vbo(0), _ebo(0), _shader(linkShaderProgram()) {
         glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 
         // 3) tell how to interpret data
+        glEnableVertexAttribArray(0);
         glVertexAttribPointer(
             0,                      // describe shader layout = 0
-            3,                      // shader layout size = 3 (vec3)
+            2,                      // shader layout size = 2 (vec3)
             GL_FLOAT,               // shader var uses float
             GL_FALSE,               // do not normalize [0, 1] variable
-            sizeof(GLfloat) * 3,    // stride between data
+            sizeof(GLfloat) * 5,    // stride between data
             (GLvoid*)0              // offset
         );
-        glEnableVertexAttribArray(0);
+
+        glEnableVertexAttribArray(1);
+        glVertexAttribPointer(
+            1, 3, GL_FLOAT, GL_FALSE, 
+            sizeof(GLfloat) * 5,
+            (GLvoid*)(sizeof(GLfloat) * 2)
+        );
 
         // 4) bind and setting ebo
         glGenBuffers(1, &_ebo);
@@ -137,11 +145,15 @@ Renderer::Renderer(): _vao(0), _vbo(0), _ebo(0), _shader(linkShaderProgram()) {
         // unbind all objects
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-
+        
         glClearColor(0.2f, 0.3f, 0.3f, 1.f);
         glBindVertexArray(_vao);
         glUseProgram(_shader);
+
+        // uniform
+        _uniformLocation = glGetUniformLocation(_shader, "colorCoeff");
+        if (_uniformLocation == -1)
+            Logger::getInstance().printErr("Uniform colorCoeff not found in shaders");
     }
 }
 
@@ -157,4 +169,8 @@ void Renderer::setNormalMode() { glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
 void Renderer::draw() {
     glClear(GL_COLOR_BUFFER_BIT);
     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
+}
+
+void Renderer::updateUniform(const float newValue) { 
+    glUniform1f(_uniformLocation, newValue);
 }

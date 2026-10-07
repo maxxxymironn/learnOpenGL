@@ -2,6 +2,8 @@
 #include "renderer.hpp"
 #include "states.hpp"
 
+#include <cmath>
+
 void checkInput(Renderer& renderer);
 
 int main() {
@@ -14,6 +16,9 @@ int main() {
         return 1;
 
     while(!window.shouldClose()) {
+        float time = window.getTime();
+        renderer.updateUniform(std::sin(time) / 2 + 0.5f);
+        
         renderer.draw();
         window.endFrame();
 

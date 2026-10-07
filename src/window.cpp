@@ -76,3 +76,5 @@ void Window::endFrame() {
     glfwPollEvents();
     glfwSwapBuffers(_handle);
 }
+
+float Window::getTime() { return static_cast<float>(glfwGetTime()); }

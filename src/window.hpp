@@ -21,4 +21,6 @@ public:
     void close();
 
     void endFrame();
+
+    float getTime();
 };
