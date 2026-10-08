@@ -2,6 +2,8 @@
 #include "logger.hpp"
 
 #include <glad/glad.h>
+#define STB_IMAGE_IMPLEMENTATION
+#include <stb_image.h>
 
 #include <sstream>
 #include <string>
@@ -10,16 +12,16 @@
 
 namespace {
     constexpr GLfloat vertices[] {
-        -0.5f, -0.5f, 1.f, 0.f, 0.f,
-         0.5f, -0.5f, 0.f, 1.f, 0.f,
-        -0.5f,  0.5f, 1.f, 0.f, 1.f,
-         0.5f,  0.5f, 0.f, 0.f, 1.f,
+        -0.5f, -0.5f,   1.f, 0.f, 0.f,   0.f, 0.f,
+         0.5f, -0.5f,   0.f, 1.f, 0.f,   1.f, 0.f,
+        -0.5f,  0.5f,   1.f, 0.f, 1.f,   0.f, 1.f,
+         0.5f,  0.5f,   0.f, 0.f, 1.f,   1.f, 1.f,
     };
 
     constexpr GLuint indices[] = {
         0, 1, 2,
         1, 2, 3
-    };    
+    };
 
     std::string loadShaderSource(const char* filename) {
         std::string shaderPath(SHADERS_DIR);
@@ -105,9 +107,50 @@ namespace {
 
         return program;
     }
+
+    void loadTexture(const char* texPath, const int texCount) {
+        int x, y, channels;
+        unsigned char* texData = stbi_load(texPath, &x, &y, &channels, 0);
+        if (texData) {
+            glActiveTexture(GL_TEXTURE0 + texCount);
+            GLuint texture;
+            glGenTextures(1, &texture);
+            glBindTexture(GL_TEXTURE_2D, texture);
+    
+            // what to do if texture will be smaller primitive
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+            // texture filtering
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+            GLint texFormat = channels == 3 ? GL_RGB : GL_RGBA;
+            glTexImage2D(
+                GL_TEXTURE_2D,
+                0,              // autogenerate mipmap
+                texFormat,
+                x,
+                y,
+                0,              // legacy parameter
+                texFormat,
+                GL_UNSIGNED_BYTE,
+                texData
+            );
+
+            stbi_image_free(texData);
+        }
+        else Logger::getInstance().printErr("load texture failed");
+    }
 }
 
-Renderer::Renderer(): _vao(0), _vbo(0), _ebo(0), _shader(linkShaderProgram()) {
+Renderer::Renderer()
+    : _vao(0)
+    , _vbo(0)
+    , _ebo(0)
+    , _shader(linkShaderProgram())
+    , _texture(0)
+    , _textureData(nullptr)
+{
     if (_shader) {
         // 1) bind vao
         glGenVertexArrays(1, &_vao);
@@ -123,18 +166,25 @@ Renderer::Renderer(): _vao(0), _vbo(0), _ebo(0), _shader(linkShaderProgram()) {
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(
             0,                      // describe shader layout = 0
-            2,                      // shader layout size = 2 (vec3)
+            2,                      // shader layout size = 2 (vec2)
             GL_FLOAT,               // shader var uses float
             GL_FALSE,               // do not normalize [0, 1] variable
-            sizeof(GLfloat) * 5,    // stride between data
+            sizeof(GLfloat) * 7,    // stride between data
             (GLvoid*)0              // offset
         );
 
         glEnableVertexAttribArray(1);
         glVertexAttribPointer(
             1, 3, GL_FLOAT, GL_FALSE, 
-            sizeof(GLfloat) * 5,
+            sizeof(GLfloat) * 7,
             (GLvoid*)(sizeof(GLfloat) * 2)
+        );
+
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(
+            2, 2, GL_FLOAT, GL_FALSE,
+            sizeof(GLfloat) * 7,
+            (GLvoid*)(sizeof(GLfloat) * 5)
         );
 
         // 4) bind and setting ebo
@@ -146,7 +196,7 @@ Renderer::Renderer(): _vao(0), _vbo(0), _ebo(0), _shader(linkShaderProgram()) {
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
-        glClearColor(0.2f, 0.3f, 0.3f, 1.f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.f);
         glBindVertexArray(_vao);
         glUseProgram(_shader);
 
@@ -154,6 +204,24 @@ Renderer::Renderer(): _vao(0), _vbo(0), _ebo(0), _shader(linkShaderProgram()) {
         _uniformLocation = glGetUniformLocation(_shader, "colorCoeff");
         if (_uniformLocation == -1)
             Logger::getInstance().printErr("Uniform colorCoeff not found in shaders");
+
+        /* textures */
+        stbi_set_flip_vertically_on_load(true);
+        int textureCount = 0;
+        
+        // load texture №1
+        std::string imagePath(IMAGES_DIR);
+        imagePath += "tex1.png";
+        loadTexture(imagePath.c_str(), textureCount);
+        glUniform1i(glGetUniformLocation(_shader, "tex1"), textureCount);
+        ++textureCount;
+        
+        // load texture №2
+        imagePath = IMAGES_DIR;
+        imagePath += "tex2.jpg";
+        loadTexture(imagePath.c_str(), textureCount);
+        glUniform1i(glGetUniformLocation(_shader, "tex2"), textureCount);
+        ++textureCount;
     }
 }
 
@@ -161,6 +229,8 @@ Renderer::~Renderer() {
     if (_shader) glDeleteProgram(_shader);
     if (_vao) glDeleteVertexArrays(1, &_vao);
     if (_vbo) glDeleteBuffers(1, &_vbo);
+    if (_ebo) glDeleteBuffers(1, &_ebo);
+    
 }
 
 void Renderer::setWireframeMode() { glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); }

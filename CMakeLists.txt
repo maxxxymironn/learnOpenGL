@@ -19,6 +19,7 @@ target_sources(opengl PRIVATE
 
 target_compile_definitions(opengl PRIVATE
   SHADERS_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources/shaders/"
+  IMAGES_DIR="${CMAKE_CURRENT_SOURCE_DIR}/resources/textures/"
 )
 
 # glad
@@ -30,6 +31,9 @@ set(GLFW_BUILD_DOCS OFF)
 set(GLFW_BUILD_TESTS OFF)
 set(GLFW_BUILD_EXAMPLES OFF)
 add_subdirectory(external/glfw SYSTEM)
+
+#stbi_image
+target_include_directories(opengl PRIVATE external/stbi_image)
 
 target_link_libraries(opengl PRIVATE
   glad
