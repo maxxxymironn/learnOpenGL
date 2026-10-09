@@ -3,7 +3,6 @@
 class Renderer {
     unsigned int _vao, _vbo, _ebo;
     unsigned int _shader;
-    int _uniformLocation;
 
     unsigned int _texture;
     int _texWidth, _texHeight, _texChannels;
@@ -20,5 +19,7 @@ public:
     void setWireframeMode();
     void setNormalMode();
 
-    void updateUniform(const float newValue);
+    void updateColorCoeffUni(const float newValue);
+
+    void updateTransformMatrixUni(const float degrees, const float moveX=0.f, const float moveY=0.f);
 };

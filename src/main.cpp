@@ -17,7 +17,8 @@ int main() {
 
     while(!window.shouldClose()) {
         float time = window.getTime();
-        renderer.updateUniform(std::sin(time) * 0.5f + 0.5f);
+        renderer.updateColorCoeffUni(std::sin(time) * 0.5f + 0.5f);
+        renderer.updateTransformMatrixUni(time * 50.f, 0.5f, -0.5f);
         
         renderer.draw();
         window.endFrame();

@@ -35,6 +35,9 @@ add_subdirectory(external/glfw SYSTEM)
 #stbi_image
 target_include_directories(opengl PRIVATE external/stbi_image)
 
+#glm
+target_include_directories(opengl PRIVATE external)
+
 target_link_libraries(opengl PRIVATE
   glad
   glfw

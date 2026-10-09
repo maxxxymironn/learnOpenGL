@@ -5,12 +5,19 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include <stb_image.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
+
 #include <sstream>
 #include <string>
 #include <fstream>
 #include <iostream>
 
 namespace {
+    GLint transformMatrixUniformLocation = 0;
+    GLint colorCoeffUniformLocation = 0;
+    
     constexpr GLfloat vertices[] {
         -0.5f, -0.5f,   1.f, 0.f, 0.f,   0.f, 0.f,
          0.5f, -0.5f,   0.f, 1.f, 0.f,   1.f, 0.f,
@@ -200,10 +207,14 @@ Renderer::Renderer()
         glBindVertexArray(_vao);
         glUseProgram(_shader);
 
-        // uniform
-        _uniformLocation = glGetUniformLocation(_shader, "colorCoeff");
-        if (_uniformLocation == -1)
-            Logger::getInstance().printErr("Uniform colorCoeff not found in shaders");
+        // uniforms
+        colorCoeffUniformLocation = glGetUniformLocation(_shader, "colorCoeff");
+        if (colorCoeffUniformLocation == -1)
+            Logger::getInstance().printErr("Uniform 'colorCoeff' not found in shaders");
+        
+        transformMatrixUniformLocation = glGetUniformLocation(_shader, "transformMatrix");
+        if (transformMatrixUniformLocation == -1)
+            Logger::getInstance().printErr("Uniform 'transformMatrix' not found");
 
         /* textures */
         stbi_set_flip_vertically_on_load(true);
@@ -241,6 +252,13 @@ void Renderer::draw() {
     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
 }
 
-void Renderer::updateUniform(const float newValue) { 
-    glUniform1f(_uniformLocation, newValue);
+void Renderer::updateColorCoeffUni(const float newValue) { 
+    glUniform1f(colorCoeffUniformLocation, newValue);
+}
+
+void Renderer::updateTransformMatrixUni(const float deegres, const float moveX, const float moveY) {
+    glm::mat4 transform(1.f);
+    transform = glm::translate(transform, glm::vec3(moveX, moveY, 0.f));
+    transform = glm::rotate(transform, glm::radians(deegres), glm::vec3(0.f, 0.f, 1.f));
+    glUniformMatrix4fv(transformMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(transform));
 }
