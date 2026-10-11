@@ -23,4 +23,7 @@ public:
     void endFrame();
 
     float getTime();
+
+    int getWidth() const { return _width; }
+    int getHeight() const { return _height; }
 };

@@ -1,4 +1,7 @@
 #include "renderer.hpp"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_transform.hpp"
+#include "glm/matrix.hpp"
 #include "logger.hpp"
 
 #include <glad/glad.h>
@@ -15,8 +18,10 @@
 #include <iostream>
 
 namespace {
-    GLint transformMatrixUniformLocation = 0;
-    GLint colorCoeffUniformLocation = 0;
+    GLint viewMatrixUniLoc = 0;
+    GLint projectionMatrixUniLoc = 0;
+    GLint transformMatrixUniLoc = 0;
+    GLint colorCoeffUniLoc = 0;
     
     constexpr GLfloat vertices[] {
         -0.5f, -0.5f,   1.f, 0.f, 0.f,   0.f, 0.f,
@@ -25,9 +30,70 @@ namespace {
          0.5f,  0.5f,   0.f, 0.f, 1.f,   1.f, 1.f,
     };
 
+    constexpr GLfloat cube[] {
+        // front side
+        -1.f, -1.f,  1.f,    0.f, 0.f,
+         1.f, -1.f,  1.f,    1.f, 0.f,
+        -1.f,  1.f,  1.f,    0.f, 1.f,
+         1.f,  1.f,  1.f,    1.f, 1.f,
+        // back side
+        -1.f, -1.f, -1.f,   0.f, 0.f,
+         1.f, -1.f, -1.f,   1.f, 0.f,
+        -1.f,  1.f, -1.f,   0.f, 1.f,
+         1.f,  1.f, -1.f,   1.f, 1.f,
+        // top side
+        -1.f,  1.f,  1.f,   0.f, 0.f,
+        -1.f,  1.f, -1.f,   0.f, 1.f,
+         1.f,  1.f,  1.f,   1.f, 0.f,
+         1.f,  1.f, -1.f,   1.f, 1.f,
+        // bottom side
+        -1.f, -1.f,  1.f,   0.f, 0.f,
+         1.f, -1.f,  1.f,   1.f, 0.f,
+        -1.f, -1.f, -1.f,   0.f, 1.f,
+         1.f, -1.f, -1.f,   1.f, 1.f,
+        // left side
+        -1.f, -1.f,  1.f,   0.f, 0.f,
+        -1.f, -1.f, -1.f,   1.f, 0.f,
+        -1.f,  1.f,  1.f,   0.f, 1.f,
+        -1.f,  1.f, -1.f,   1.f, 1.f,
+        // rigth side
+         1.f, -1.f,  1.f,   0.f, 0.f,
+         1.f, -1.f, -1.f,   1.f, 0.f,
+         1.f,  1.f,  1.f,   0.f, 1.f,
+         1.f,  1.f, -1.f,   1.f, 1.f,
+    };
+
     constexpr GLuint indices[] = {
         0, 1, 2,
-        1, 2, 3
+        2, 3, 1,
+
+        4, 5, 6,
+        6, 7, 5,
+
+        8, 9, 10,
+        10, 11, 9,
+
+        12, 13, 14,
+        14, 15, 13,
+
+        16, 17, 18,
+        18, 19, 17,
+
+        20, 21, 22,
+        22, 23, 21
+    };
+
+    constexpr glm::vec3 cubePositions[] = {
+        glm::vec3( 0.0f,  0.0f,  0.0f), 
+        glm::vec3( 2.0f,  5.0f, -15.0f), 
+        glm::vec3(-1.5f, -2.2f, -2.5f),  
+        glm::vec3(-3.8f, -2.0f, -12.3f),  
+        glm::vec3( 2.4f, -0.4f, -3.5f),  
+        glm::vec3(-1.7f,  3.0f, -7.5f),  
+        glm::vec3( 1.3f, -2.0f, -2.5f),  
+        glm::vec3( 1.5f,  2.0f, -2.5f), 
+        glm::vec3( 1.5f,  0.2f, -1.5f), 
+        glm::vec3(-1.3f,  1.0f, -1.5f)  
     };
 
     std::string loadShaderSource(const char* filename) {
@@ -167,32 +233,40 @@ Renderer::Renderer()
         glGenBuffers(1, &_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, _vbo);
         // copy my data to buffer
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
+        // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+        // 
         // 3) tell how to interpret data
+//         glEnableVertexAttribArray(0);
+//         glVertexAttribPointer(
+//             0,                      // describe shader layout = 0
+//             2,                      // shader layout size = 2 (vec2)
+//             GL_FLOAT,               // shader var uses float
+//             GL_FALSE,               // do not normalize [0, 1] variable
+//             sizeof(GLfloat) * 7,    // stride between data
+//             (GLvoid*)0              // offset
+//         );
+// 
+//         glEnableVertexAttribArray(1);
+//         glVertexAttribPointer(
+//             1, 3, GL_FLOAT, GL_FALSE, 
+//             sizeof(GLfloat) * 7,
+//             (GLvoid*)(sizeof(GLfloat) * 2)
+//         );
+// 
+//         glEnableVertexAttribArray(2);
+//         glVertexAttribPointer(
+//             2, 2, GL_FLOAT, GL_FALSE,
+//             sizeof(GLfloat) * 7,
+//             (GLvoid*)(sizeof(GLfloat) * 5)
+//         );
+
+        glBufferData(GL_ARRAY_BUFFER, sizeof(cube), cube, GL_STATIC_DRAW);
+
         glEnableVertexAttribArray(0);
-        glVertexAttribPointer(
-            0,                      // describe shader layout = 0
-            2,                      // shader layout size = 2 (vec2)
-            GL_FLOAT,               // shader var uses float
-            GL_FALSE,               // do not normalize [0, 1] variable
-            sizeof(GLfloat) * 7,    // stride between data
-            (GLvoid*)0              // offset
-        );
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)0);
 
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(
-            1, 3, GL_FLOAT, GL_FALSE, 
-            sizeof(GLfloat) * 7,
-            (GLvoid*)(sizeof(GLfloat) * 2)
-        );
-
-        glEnableVertexAttribArray(2);
-        glVertexAttribPointer(
-            2, 2, GL_FLOAT, GL_FALSE,
-            sizeof(GLfloat) * 7,
-            (GLvoid*)(sizeof(GLfloat) * 5)
-        );
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)(sizeof(GLfloat) * 3));
 
         // 4) bind and setting ebo
         glGenBuffers(1, &_ebo);
@@ -207,22 +281,34 @@ Renderer::Renderer()
         glBindVertexArray(_vao);
         glUseProgram(_shader);
 
-        // uniforms
-        colorCoeffUniformLocation = glGetUniformLocation(_shader, "colorCoeff");
-        if (colorCoeffUniformLocation == -1)
+        /* uniforms */
+        colorCoeffUniLoc = glGetUniformLocation(_shader, "colorCoeff");
+        if (colorCoeffUniLoc == -1)
             Logger::getInstance().printErr("Uniform 'colorCoeff' not found in shaders");
         
-        transformMatrixUniformLocation = glGetUniformLocation(_shader, "transformMatrix");
-        if (transformMatrixUniformLocation == -1)
+        transformMatrixUniLoc = glGetUniformLocation(_shader, "transformMatrix");
+        if (transformMatrixUniLoc == -1)
             Logger::getInstance().printErr("Uniform 'transformMatrix' not found");
 
+        projectionMatrixUniLoc = glGetUniformLocation(_shader, "projectionMatrix");
+        if (projectionMatrixUniLoc == -1)
+            Logger::getInstance().printErr("Uniform 'projectionMatrix' not found");
+
+        viewMatrixUniLoc = glGetUniformLocation(_shader, "viewMatrix");
+        if (viewMatrixUniLoc == -1)
+            Logger::getInstance().printErr("Uniform 'viewMatrix' not found");
+        
+        glm::mat4 view(1.f);
+        view = glm::translate(view, glm::vec3(0.f, 0.f, -7.f));
+        glUniformMatrix4fv(viewMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(view));
+        
         /* textures */
         stbi_set_flip_vertically_on_load(true);
         int textureCount = 0;
         
         // load texture №1
         std::string imagePath(IMAGES_DIR);
-        imagePath += "tex1.png";
+        imagePath += "tex3.jpg";
         loadTexture(imagePath.c_str(), textureCount);
         glUniform1i(glGetUniformLocation(_shader, "tex1"), textureCount);
         ++textureCount;
@@ -233,6 +319,10 @@ Renderer::Renderer()
         loadTexture(imagePath.c_str(), textureCount);
         glUniform1i(glGetUniformLocation(_shader, "tex2"), textureCount);
         ++textureCount;
+
+        // enable Z-test
+        glEnable(GL_DEPTH_TEST);
+        
     }
 }
 
@@ -248,17 +338,42 @@ void Renderer::setWireframeMode() { glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); }
 void Renderer::setNormalMode() { glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
 
 void Renderer::draw() {
-    glClear(GL_COLOR_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
 }
 
 void Renderer::updateColorCoeffUni(const float newValue) { 
-    glUniform1f(colorCoeffUniformLocation, newValue);
+    glUniform1f(colorCoeffUniLoc, newValue);
 }
 
-void Renderer::updateTransformMatrixUni(const float deegres, const float moveX, const float moveY) {
+void Renderer::updateTransformMatrixUni(float degrees, float moveX, float moveY, float moveZ, float aspect) {
     glm::mat4 transform(1.f);
-    transform = glm::translate(transform, glm::vec3(moveX, moveY, 0.f));
-    transform = glm::rotate(transform, glm::radians(deegres), glm::vec3(0.f, 0.f, 1.f));
-    glUniformMatrix4fv(transformMatrixUniformLocation, 1, GL_FALSE, glm::value_ptr(transform));
+    transform = glm::translate(transform, glm::vec3(moveX, moveY, moveZ));
+    transform = glm::rotate(transform, glm::radians(degrees), glm::vec3(0.5f, 1.f, 0.f));
+
+    glm::mat4 projection(1.f);
+    projection = glm::perspective(glm::radians(45.f), aspect, 0.1f, 100.f);
+    
+    glUniformMatrix4fv(transformMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(transform));
+    glUniformMatrix4fv(projectionMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(projection));
+}
+
+void Renderer::drawManyCubes(const float aspect, const float rotateDegrees) {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    for (int i = 0; i < 10; ++i) {
+        glm::mat4 transform(1.f);        
+        transform = glm::translate(transform, cubePositions[i]);
+        transform = glm::rotate(transform, glm::radians(rotateDegrees + i * 20.f), glm::vec3(0.5f, 1.f, 0.f));        
+        transform = glm::scale(transform, glm::vec3(0.5f, 0.5f, 0.5f));
+        
+        glm::mat4 projection(1.f);
+        projection = glm::perspective(glm::radians(45.f), aspect, 0.1f, 100.f);
+        // projection = glm::ortho(-3.f, 3.f, -3.f, 3.f, 0.1f, 100.f);
+
+        glUniformMatrix4fv(transformMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(transform));
+        glUniformMatrix4fv(projectionMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(projection));
+
+        glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
+    }
 }

@@ -18,9 +18,11 @@ int main() {
     while(!window.shouldClose()) {
         float time = window.getTime();
         renderer.updateColorCoeffUni(std::sin(time) * 0.5f + 0.5f);
-        renderer.updateTransformMatrixUni(time * 50.f, 0.5f, -0.5f);
         
-        renderer.draw();
+        float aspect = static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight());
+        // renderer.updateTransformMatrixUni(time * 50.f, 0.f, 0.f, -10.f, aspect);
+        renderer.drawManyCubes(aspect, time * 50.f);
+        // renderer.draw();
         window.endFrame();
 
         if (States::updated)

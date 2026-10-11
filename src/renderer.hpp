@@ -21,5 +21,7 @@ public:
 
     void updateColorCoeffUni(const float newValue);
 
-    void updateTransformMatrixUni(const float degrees, const float moveX=0.f, const float moveY=0.f);
+    void updateTransformMatrixUni(float degrees, float moveX, float moveY, float moveZ, float aspect);
+
+    void drawManyCubes(const float aspect, const float rotateDegrees);
 };
