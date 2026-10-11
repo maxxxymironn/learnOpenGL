@@ -1,7 +1,6 @@
 #include "renderer.hpp"
-#include "glm/ext/matrix_clip_space.hpp"
-#include "glm/ext/matrix_transform.hpp"
-#include "glm/matrix.hpp"
+#include "glm/geometric.hpp"
+#include "glm/trigonometric.hpp"
 #include "logger.hpp"
 
 #include <glad/glad.h>
@@ -11,6 +10,9 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <glm/ext/matrix_clip_space.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/matrix.hpp>
 
 #include <sstream>
 #include <string>
@@ -18,6 +20,14 @@
 #include <iostream>
 
 namespace {
+    namespace Camera {
+        glm::vec3 pos = glm::vec3(0.f, 0.f, 5.f);
+        glm::vec3 front = glm::vec3(0.f, 0.f, -1.f);
+        glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
+        GLfloat delta = 0.f;
+        GLfloat fovDegrees = 45.f;
+    }
+    
     GLint viewMatrixUniLoc = 0;
     GLint projectionMatrixUniLoc = 0;
     GLint transformMatrixUniLoc = 0;
@@ -232,33 +242,6 @@ Renderer::Renderer()
         // 2) bind and setting vbo
         glGenBuffers(1, &_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, _vbo);
-        // copy my data to buffer
-        // glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        // 
-        // 3) tell how to interpret data
-//         glEnableVertexAttribArray(0);
-//         glVertexAttribPointer(
-//             0,                      // describe shader layout = 0
-//             2,                      // shader layout size = 2 (vec2)
-//             GL_FLOAT,               // shader var uses float
-//             GL_FALSE,               // do not normalize [0, 1] variable
-//             sizeof(GLfloat) * 7,    // stride between data
-//             (GLvoid*)0              // offset
-//         );
-// 
-//         glEnableVertexAttribArray(1);
-//         glVertexAttribPointer(
-//             1, 3, GL_FLOAT, GL_FALSE, 
-//             sizeof(GLfloat) * 7,
-//             (GLvoid*)(sizeof(GLfloat) * 2)
-//         );
-// 
-//         glEnableVertexAttribArray(2);
-//         glVertexAttribPointer(
-//             2, 2, GL_FLOAT, GL_FALSE,
-//             sizeof(GLfloat) * 7,
-//             (GLvoid*)(sizeof(GLfloat) * 5)
-//         );
 
         glBufferData(GL_ARRAY_BUFFER, sizeof(cube), cube, GL_STATIC_DRAW);
 
@@ -298,10 +281,6 @@ Renderer::Renderer()
         if (viewMatrixUniLoc == -1)
             Logger::getInstance().printErr("Uniform 'viewMatrix' not found");
         
-        glm::mat4 view(1.f);
-        view = glm::translate(view, glm::vec3(0.f, 0.f, -7.f));
-        glUniformMatrix4fv(viewMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(view));
-        
         /* textures */
         stbi_set_flip_vertically_on_load(true);
         int textureCount = 0;
@@ -334,8 +313,14 @@ Renderer::~Renderer() {
     
 }
 
-void Renderer::setWireframeMode() { glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); }
-void Renderer::setNormalMode() { glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); }
+void Renderer::setWireframeMode() { 
+    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); 
+    _isWireframeMode = true;
+}
+void Renderer::setNormalMode() { 
+    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    _isWireframeMode = false;
+}
 
 void Renderer::draw() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -360,20 +345,65 @@ void Renderer::updateTransformMatrixUni(float degrees, float moveX, float moveY,
 
 void Renderer::drawManyCubes(const float aspect, const float rotateDegrees) {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glm::mat4 projection(1.f);
+    projection = glm::perspective(glm::radians(Camera::fovDegrees), aspect, 0.1f, 100.f);
+    // projection = glm::ortho(-3.f, 3.f, -3.f, 3.f, 0.1f, 100.f);
+    
+    glm::mat4 view(1.f);
+    view = glm::lookAt(
+        Camera::pos,
+        Camera::pos + Camera::front,
+        Camera::up
+    );
+    
+    glUniformMatrix4fv(viewMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(view));
+    glUniformMatrix4fv(projectionMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(projection));
     
     for (int i = 0; i < 10; ++i) {
         glm::mat4 transform(1.f);        
         transform = glm::translate(transform, cubePositions[i]);
         transform = glm::rotate(transform, glm::radians(rotateDegrees + i * 20.f), glm::vec3(0.5f, 1.f, 0.f));        
         transform = glm::scale(transform, glm::vec3(0.5f, 0.5f, 0.5f));
-        
-        glm::mat4 projection(1.f);
-        projection = glm::perspective(glm::radians(45.f), aspect, 0.1f, 100.f);
-        // projection = glm::ortho(-3.f, 3.f, -3.f, 3.f, 0.1f, 100.f);
-
+                
         glUniformMatrix4fv(transformMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(transform));
-        glUniformMatrix4fv(projectionMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(projection));
 
         glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
     }
+}
+
+void Renderer::moveCameraPos(const Direction dir, const GLfloat cameraSpeed) {
+    GLfloat speed = cameraSpeed * Camera::delta;
+    switch (dir) {
+        case Direction::RIGHT:
+            Camera::pos += glm::normalize(glm::cross(Camera::front, Camera::up)) * speed;
+            break;
+        case Direction::LEFT:
+            Camera::pos -= glm::normalize(glm::cross(Camera::front, Camera::up)) * speed;
+            break;
+        case Direction::FORWARD:
+            Camera::pos += Camera::front * speed; 
+            break;
+        case Direction::BACK:
+            Camera::pos -= Camera::front * speed; 
+            break;
+    }
+}
+
+void Renderer::moveCameraFront(const float pitch, const float yaw) {
+    glm::vec3 front;
+    front.x = std::cos(glm::radians(pitch)) * std::cos(glm::radians(yaw));
+    front.y = std::sin(glm::radians(pitch));
+    front.z = std::cos(glm::radians(pitch)) * std::sin(glm::radians(yaw));
+    Camera::front = glm::normalize(front);
+}
+
+void Renderer::updateDeltaTime(const float deltaTime) { Camera::delta = deltaTime; }
+
+void Renderer::changeCameraFov(const float fov) {
+    Camera::fovDegrees -= fov;
+    if (Camera::fovDegrees > 45.f)
+        Camera::fovDegrees = 45.f;
+    else if (Camera::fovDegrees < 1.f)
+        Camera::fovDegrees = 1.f;
 }

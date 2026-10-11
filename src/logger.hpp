@@ -12,5 +12,6 @@ public:
     Logger& operator=(const Logger&) = delete;
 
     void print(const char* msg);
+    
     void printErr(const char* msg);
 };

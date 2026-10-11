@@ -1,6 +1,7 @@
+#include "timeHandler.hpp"
 #include "window.hpp"
 #include "renderer.hpp"
-#include "states.hpp"
+#include "keyHandler.hpp"
 
 #include <cmath>
 
@@ -15,32 +16,55 @@ int main() {
     if (!renderer.initializeSuccess())
         return 1;
 
+    TimeHandler clock;
+    
     while(!window.shouldClose()) {
-        float time = window.getTime();
-        renderer.updateColorCoeffUni(std::sin(time) * 0.5f + 0.5f);
+        if (!window.vSync())
+            clock.waitFramerate(window.getTime());
+        clock.update(window.getTime());
         
-        float aspect = static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight());
-        // renderer.updateTransformMatrixUni(time * 50.f, 0.f, 0.f, -10.f, aspect);
-        renderer.drawManyCubes(aspect, time * 50.f);
-        // renderer.draw();
-        window.endFrame();
+        checkInput(renderer);
+        KeyHandler::updateBuffers();
 
-        if (States::updated)
-            checkInput(renderer);
+        float time = window.getTime();
+        renderer.updateDeltaTime(clock.deltaTime);
+        renderer.updateColorCoeffUni(std::sin(time) * 0.5f + 0.5f);
+        float aspect = static_cast<float>(window.getWidth()) / static_cast<float>(window.getHeight());
+        renderer.drawManyCubes(aspect, time * 50.f);
+        window.endFrame();
     }
 
     return 0;
 }
 
 void checkInput(Renderer& renderer) {
-    if (States::polygonModeUpdated) {
-        if (States::polygonMode)
-            renderer.setWireframeMode();
-        else
-            renderer.setNormalMode();
-
-        States::polygonModeUpdated = false;
+    if (KeyHandler::isKeyPressed(Key::POLYGON_MODE)) {
+        renderer.isWireframeMode() ? renderer.setNormalMode()
+                                   : renderer.setWireframeMode();
     }
 
-    States::updated = false;
+    float cameraSpeed = 5.f;
+    if (KeyHandler::isKeyDown(Key::SHIFT)) {
+        cameraSpeed = 20.f;
+    }
+    if (KeyHandler::isKeyDown(Key::RIGHT) || KeyHandler::isKeyPressed(Key::RIGHT)) {
+        renderer.moveCameraPos(Direction::RIGHT, cameraSpeed);
+    }
+    if (KeyHandler::isKeyDown(Key::LEFT) || KeyHandler::isKeyPressed(Key::LEFT)) {
+        renderer.moveCameraPos(Direction::LEFT, cameraSpeed);
+    }
+    if (KeyHandler::isKeyDown(Key::DOWN) || KeyHandler::isKeyPressed(Key::DOWN)) {
+        renderer.moveCameraPos(Direction::BACK, cameraSpeed);
+    }
+    if (KeyHandler::isKeyDown(Key::UP) || KeyHandler::isKeyPressed(Key::UP)) {
+        renderer.moveCameraPos(Direction::FORWARD, cameraSpeed);
+    }
+    if (KeyHandler::isCursorMoved) {
+        renderer.moveCameraFront(KeyHandler::pitch, KeyHandler::yaw);
+        KeyHandler::isCursorMoved = false;
+    }
+    if (KeyHandler::isScrolled) {
+        renderer.changeCameraFov(KeyHandler::scrollOffset);
+        KeyHandler::isScrolled = false;
+    }
 }
