@@ -22,6 +22,9 @@ int main() {
         if (!window.vSync())
             clock.waitFramerate(window.getTime());
         clock.update(window.getTime());
+
+        if (clock.newFps)
+            window.refreshTitle(clock.prevFrameAccumulator);
         
         checkInput(renderer);
         KeyHandler::updateBuffers();

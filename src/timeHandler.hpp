@@ -1,10 +1,7 @@
 #pragma once
 
-#include "logger.hpp"
-
 #include <chrono>
 #include <thread>
-#include <string>
 
 struct TimeHandler {
     const float TARGET_FRAMERATE = 1.f / 30.f;
@@ -14,7 +11,10 @@ struct TimeHandler {
     float lastFrame = 0.f;
 
     float deltaAccumulator = 0.f;
+
+    int prevFrameAccumulator = 0;
     int frameAccumulator = 0;
+    bool newFps = false;
 
     void waitFramerate(const float curTime) {
         currentFrame = curTime;
@@ -31,10 +31,11 @@ struct TimeHandler {
         ++frameAccumulator;
         deltaAccumulator += deltaTime;
         if (deltaAccumulator >= 1.f) {
-            std::string toPrint("fps=");
-            toPrint += std::to_string(frameAccumulator);
-            
-            Logger::getInstance().print(toPrint.c_str());
+            newFps = false;
+            if (frameAccumulator != prevFrameAccumulator) {
+                prevFrameAccumulator = frameAccumulator;
+                newFps = true;
+            }
             frameAccumulator = 0;
             deltaAccumulator = 0.f;
         }

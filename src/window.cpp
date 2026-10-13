@@ -6,6 +6,8 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
+#include <string>
+
 namespace {
     float sensitivity = 0.05f;
     float prevCursorPosX = 0.f;
@@ -89,7 +91,7 @@ void Window::_scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
     KeyHandler::scrollOffset = yoffset;
 }
 
-Window::Window(): _handle(nullptr), _width(800), _height(800), _status(0), _vSync(true) {
+Window::Window(const bool vsync): _handle(nullptr), _width(800), _height(800), _status(0), _vSync(vsync) {
     if (!glfwInit()) {
         Logger::getInstance().printErr("Initialize glfw failed");
         _status = 1;
@@ -146,4 +148,10 @@ void Window::endFrame() {
     glfwSwapBuffers(_handle);
 }
 
-float Window::getTime() { return static_cast<float>(glfwGetTime()); }
+float Window::getTime() const { return static_cast<float>(glfwGetTime()); }
+
+void Window::refreshTitle(const int fps) {
+    std::string newTitle("OpenGL | FPS: ");
+    newTitle += std::to_string(fps);
+    glfwSetWindowTitle(_handle, newTitle.c_str());
+}
