@@ -392,18 +392,14 @@ void Renderer::moveCameraPos(const Direction dir, const GLfloat cameraSpeed) {
 
 void Renderer::moveCameraFront(const float pitch, const float yaw) {
     glm::vec3 front;
-    front.x = std::cos(glm::radians(pitch)) * std::cos(glm::radians(yaw));
+    front.x = std::cos(glm::radians(pitch)) * std::sin(glm::radians(yaw));
     front.y = std::sin(glm::radians(pitch));
-    front.z = std::cos(glm::radians(pitch)) * std::sin(glm::radians(yaw));
+    front.z = std::cos(glm::radians(pitch)) * std::cos(glm::radians(yaw));
     Camera::front = glm::normalize(front);
 }
 
 void Renderer::updateDeltaTime(const float deltaTime) { Camera::delta = deltaTime; }
 
 void Renderer::changeCameraFov(const float fov) {
-    Camera::fovDegrees -= fov;
-    if (Camera::fovDegrees > 45.f)
-        Camera::fovDegrees = 45.f;
-    else if (Camera::fovDegrees < 1.f)
-        Camera::fovDegrees = 1.f;
+    Camera::fovDegrees = fov;
 }

@@ -1,14 +1,19 @@
 #pragma once
+#include "vector.hpp"
+#include "inputEnum.hpp"
+
+#include <functional>
 
 struct GLFWwindow;
 
 class Window {    
     GLFWwindow* _handle;
-    int _width;
-    int _height;
-    
+    vec2i _size;
     bool _status;
-    bool _vSync;
+
+    std::function<void(const Key key, const bool isPressed)> _updateKeyStatus;
+    std::function<void(const Mouse key, const float value)> _updateMouseStatus;
+    std::function<void(const float value)> _updateMouseScroll;
 
     static void _keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void _framebufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -16,21 +21,20 @@ class Window {
     static void _cursorPosCallback(GLFWwindow* window, double xpos, double ypos);
     static void _scrollCallback(GLFWwindow* window, double xoffset, double yoffset);
 public:
-    Window(const bool vsync=true);
+    Window(const int x=800, const int y=800, const bool vsync=true);
     ~Window();
 
-    bool getStatus() const { return _status; }
-    
-    bool shouldClose() const;
-    void close();
-
-    void endFrame();
+    void setFunUpdateKeyStatus(std::function<void(const Key, const bool)> fun) { _updateKeyStatus = fun; }
+    void setFunUpdateMouseStatus(std::function<void(const Mouse, const float)> fun) { _updateMouseStatus = fun; }
+    void setFunUpdateMouseScroll(std::function<void(const float)> fun) { _updateMouseScroll = fun; }
 
     float getTime() const;
-    bool vSync() const { return _vSync; }
+    bool getStatus() const { return _handle; }
+    vec2i getSize() const { return _size; }
+    
+    bool shouldClose() const;
 
-    int getWidth() const { return _width; }
-    int getHeight() const { return _height; }
+    void endFrame();
 
     void refreshTitle(const int fps);
 };
