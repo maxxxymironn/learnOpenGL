@@ -1,6 +1,7 @@
 #pragma once
 #include "camera.hpp"
 #include "iRendererListener.hpp"
+#include "shader.hpp"
 
 enum class PolygonMode: unsigned char {
     FILL,
@@ -8,19 +9,18 @@ enum class PolygonMode: unsigned char {
 };
 
 class Renderer: public IRendererListener {
-    unsigned int _vao, _vao2, _vbo, _ebo;
-    unsigned int _shader;
-    float _aspectRatio;
-    
-    PolygonMode _polygonMode;
-
+    Shader _shader1, _shader2;
     Camera _camera;
+    
+    unsigned int _vao, _vao2, _vbo, _ebo;
+    float _aspectRatio;
+    PolygonMode _polygonMode;
 
 public:
     Renderer();
     ~Renderer();
     
-    bool getStatus() const { return _shader; }
+    bool getStatus() const { return _shader1.id && _shader2.id; }
     
     Camera& camera() { return _camera; }
 

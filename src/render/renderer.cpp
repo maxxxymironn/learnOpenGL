@@ -7,22 +7,11 @@
 #include "glm/gtc/type_ptr.hpp"
 #include "glm/ext/matrix_clip_space.hpp"
 #include "glm/ext/matrix_transform.hpp"
+#include "src/render/shader.hpp"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include <sstream>
-#include <string>
-#include <fstream>
-#include <iostream>
-
 namespace {
-    GLint viewMatrixUniLoc = 0;
-    GLint projectionMatrixUniLoc = 0;
-    GLint transformMatrixUniLoc = 0;
-    
-    GLint cubeColorUniLoc = 0;
-    GLint lightColorUniLoc = 0;
-
     constexpr float cubeColor[3] = { 0.5f, 0.3f, 0.1f };
     constexpr float lightColor[3] = { 1.f, 1.f, 1.f };
 
@@ -59,91 +48,6 @@ namespace {
         0, 4, 6,
         6, 2, 0
     };
-
-    std::string loadShaderSource(const char* filename) {
-        std::string shaderPath(SHADERS_DIR);
-        shaderPath += filename;
-
-        std::ifstream file(shaderPath);
-        if (!file.is_open()) {
-            Logger::getInstance().printErr("Open shader file failed");
-            return nullptr;
-        }
-        
-        file.exceptions(std::ios::badbit | std::ios::failbit);
-        try {
-            std::stringstream ss;
-            ss << file.rdbuf();
-            return ss.str();
-        }
-        catch (const std::ifstream::failure&) {
-            Logger::getInstance().printErr("Read shader file failed");
-            return nullptr;
-        }
-    }
-
-    GLuint compileShader(GLenum shaderType, const char* shaderSource) {
-        GLuint shader = glCreateShader(shaderType);
-        glShaderSource(shader, 1, &shaderSource, nullptr);
-        glCompileShader(shader);
-
-        GLint success;
-        glGetShaderiv(shader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            GLint logLength = 0;
-            glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &logLength);
-
-            std::string log(logLength, '\0');
-            glGetShaderInfoLog(shader, logLength, nullptr, log.data());
-
-            Logger::getInstance().printErr(log.c_str());
-            return 0;
-        }
-        return shader;
-    }
-
-    GLuint linkShaderProgram() {
-        std::string shaderSource = loadShaderSource("vertex.glsl");
-        if (shaderSource.empty())
-            return 0;
-
-        GLuint vertexShader = compileShader(GL_VERTEX_SHADER, shaderSource.c_str());
-        if (!vertexShader)
-            return 0;
-
-        shaderSource = loadShaderSource("fragment.glsl");
-        if (shaderSource.empty())
-            return 0;
-
-        GLuint fragmentShader = compileShader(GL_FRAGMENT_SHADER, shaderSource.c_str());
-        if (!fragmentShader)
-            return 0;
-
-        GLuint program = glCreateProgram();
-        glAttachShader(program, vertexShader);
-        glAttachShader(program, fragmentShader);
-        glLinkProgram(program);
-
-        GLint success;
-        glGetProgramiv(program, GL_LINK_STATUS, &success);
-        if (!success) {
-            GLint logLength = 0;
-            glGetProgramiv(program, GL_INFO_LOG_LENGTH, &logLength);
-
-            std::string log(logLength, '\0');
-            glGetProgramInfoLog(program, logLength, nullptr, log.data());
-
-            Logger::getInstance().printErr(log.c_str());
-            return 0;
-        }
-
-        glDetachShader(program, fragmentShader);
-        glDetachShader(program, vertexShader);
-        glDeleteShader(fragmentShader);
-        glDeleteShader(vertexShader);
-
-        return program;
-    }
 
     void loadTexture(const char* texPath, const int texCount) {
         int x, y, channels;
@@ -182,11 +86,12 @@ namespace {
 
 Renderer::Renderer()
     : _vao(0), _vao2(0), _vbo(0), _ebo(0)
-    , _shader(linkShaderProgram())
+    , _shader1(Shader("vertex.glsl", "fragment.glsl"))
+    , _shader2(Shader("vertex.glsl", "fragment2.glsl"))
     , _aspectRatio(1.f)
     , _polygonMode(PolygonMode::FILL)
 {
-    if (_shader) {
+    if (_shader1.id && _shader2.id) {
         glGenVertexArrays(1, &_vao);
         glBindVertexArray(_vao);
 
@@ -216,38 +121,32 @@ Renderer::Renderer()
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
 
         glBindVertexArray(0);
-        glUseProgram(_shader);
-        
-        transformMatrixUniLoc = glGetUniformLocation(_shader, "transformMatrix");
-        if (transformMatrixUniLoc == -1)
-            Logger::getInstance().printErr("Uniform 'transformMatrix' not found");
 
-        projectionMatrixUniLoc = glGetUniformLocation(_shader, "projectionMatrix");
-        if (projectionMatrixUniLoc == -1)
-            Logger::getInstance().printErr("Uniform 'projectionMatrix' not found");
-
-        viewMatrixUniLoc = glGetUniformLocation(_shader, "viewMatrix");
-        if (viewMatrixUniLoc == -1)
-            Logger::getInstance().printErr("Uniform 'viewMatrix' not found");
-
-        cubeColorUniLoc = glGetUniformLocation(_shader, "cubeColor");
-        if (cubeColorUniLoc == -1)
-            Logger::getInstance().printErr("Uniform 'cubeColor' not found");
+        _shader1.use();
+        _shader1.setUniLoc(UniName::TRANSFORM_MTX, "transformMatrix");
+        _shader1.setUniLoc(UniName::PROJECTION_MTX, "projectionMatrix");
+        _shader1.setUniLoc(UniName::VIEW_MTX, "viewMatrix");
+        _shader1.setUniLoc(UniName::CUBE_COLOR, "cubeColor");
+        _shader1.setUniLoc(UniName::LIGHT_COLOR, "lightColor");
         
-        lightColorUniLoc = glGetUniformLocation(_shader, "lightColor");
-        if (lightColorUniLoc == -1)
-            Logger::getInstance().printErr("Uniform 'lightColor' not found");
+        glUniform3f(_shader1.getUniLoc(UniName::CUBE_COLOR), cubeColor[0], cubeColor[1], cubeColor[2]);
+        glUniform3f(_shader1.getUniLoc(UniName::LIGHT_COLOR), lightColor[0], lightColor[1], lightColor[2]);
+
+        _shader2.use();
+        _shader2.setUniLoc(UniName::TRANSFORM_MTX, "transformMatrix");
+        _shader2.setUniLoc(UniName::PROJECTION_MTX, "projectionMatrix");
+        _shader2.setUniLoc(UniName::VIEW_MTX, "viewMatrix");
+        _shader2.setUniLoc(UniName::CUBE_COLOR, "cubeColor");
+        _shader2.setUniLoc(UniName::LIGHT_COLOR, "lightColor");
         
-        glUniform3f(cubeColorUniLoc, cubeColor[0], cubeColor[1], cubeColor[2]);
-        glUniform3f(lightColorUniLoc, lightColor[0], lightColor[1], lightColor[2]);
+        glUniform3f(_shader2.getUniLoc(UniName::LIGHT_COLOR), lightColor[0], lightColor[1], lightColor[2]);
         
         glEnable(GL_DEPTH_TEST);
-        glClearColor(0.1f, 0.1f, 0.1f, 1.f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.f);
     }
 }
 
 Renderer::~Renderer() {
-    if (_shader) glDeleteProgram(_shader);
     if (_vao) glDeleteVertexArrays(1, &_vao);
     if (_vao2) glDeleteVertexArrays(1, &_vao2);
     if (_vbo) glDeleteBuffers(1, &_vbo);
@@ -264,24 +163,27 @@ void Renderer::draw() {
         _camera.position() + _camera.front(),
         _camera.up()
     );
+
+    _shader1.use();
+    glUniformMatrix4fv(_shader1.getUniLoc(UniName::PROJECTION_MTX), 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(_shader1.getUniLoc(UniName::VIEW_MTX), 1, GL_FALSE, glm::value_ptr(view));
     
-    glUniformMatrix4fv(projectionMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(projection));
-    glUniformMatrix4fv(viewMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(view));
-    
-    glBindVertexArray(_vao); // -------------- vao
-    glUniform3f(cubeColorUniLoc, cubeColor[0], cubeColor[1], cubeColor[2]);
+    glBindVertexArray(_vao);
+    glUniform3f(_shader1.getUniLoc(UniName::CUBE_COLOR), cubeColor[0], cubeColor[1], cubeColor[2]);
     
     transform = glm::translate(transform, glm::vec3(0.f, 0.f, -5.f));
-    glUniformMatrix4fv(transformMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(transform));
+    glUniformMatrix4fv(_shader1.getUniLoc(UniName::TRANSFORM_MTX), 1, GL_FALSE, glm::value_ptr(transform));
     
     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
 
-    glBindVertexArray(_vao2); // -------------- vao2
-    glUniform3f(cubeColorUniLoc, lightColor[0], lightColor[1], lightColor[2]);
+    _shader2.use();
+    glUniformMatrix4fv(_shader2.getUniLoc(UniName::PROJECTION_MTX), 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(_shader2.getUniLoc(UniName::VIEW_MTX), 1, GL_FALSE, glm::value_ptr(view));
     
+    glBindVertexArray(_vao2);
     transform = glm::translate(transform, glm::vec3(3.f, 3.f, -4.f));
     transform = glm::scale(transform, glm::vec3(0.3f, 0.3f, 0.3f));
-    glUniformMatrix4fv(transformMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(transform));
+    glUniformMatrix4fv(_shader2.getUniLoc(UniName::TRANSFORM_MTX), 1, GL_FALSE, glm::value_ptr(transform));
     
     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
 }

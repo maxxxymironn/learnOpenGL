@@ -15,6 +15,7 @@ target_sources(opengl PRIVATE
   src/render/renderer.cpp
   src/window/window.cpp
   src/core/logger.cpp
+  src/render/shader.cpp
 )
 
 target_compile_definitions(opengl PRIVATE
