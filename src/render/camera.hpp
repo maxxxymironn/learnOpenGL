@@ -7,7 +7,9 @@ enum class Direction {
     RIGHT,
     LEFT,
     FORWARD,
-    BACK
+    BACK,
+    UP,
+    DOWN,
 };
 
 class Camera {
@@ -45,6 +47,10 @@ public:
                 _position += _front * _speed; break;
             case Direction::BACK:
                 _position -= _front * _speed; break;
+            case Direction::UP:
+                _position += _up * _speed; break;
+            case Direction::DOWN:
+                _position -= _up * _speed; break;
         }
     }
     

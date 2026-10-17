@@ -7,6 +7,8 @@ enum class Key: unsigned char {
     UP,
     DOWN,
     SHIFT,
+    SPACE,
+    CTRL,
     COUNT
 };
 

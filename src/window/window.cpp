@@ -34,6 +34,8 @@ void Window::_keyCallback(GLFWwindow *window, int key, int scancode, int action,
             case GLFW_KEY_S: self->_inputListener->updateKeyStatus(Key::DOWN, action); break;
             case GLFW_KEY_DOWN: self->_inputListener->updateKeyStatus(Key::DOWN, action); break;
             case GLFW_KEY_LEFT_SHIFT: self->_inputListener->updateKeyStatus(Key::SHIFT, action); break;
+            case GLFW_KEY_SPACE: self->_inputListener->updateKeyStatus(Key::SPACE, action); break;
+            case GLFW_KEY_LEFT_CONTROL: self->_inputListener->updateKeyStatus(Key::CTRL, action); break;
             default: break;
         }
     }

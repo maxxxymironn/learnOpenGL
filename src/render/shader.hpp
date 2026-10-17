@@ -6,7 +6,9 @@ enum class UniName: unsigned char {
     PROJECTION_MTX,
     VIEW_MTX,
     CUBE_COLOR,
-    LIGHT_COLOR
+    LIGHT_COLOR,
+    LIGHT_POS,
+    VIEW_POS,
 };
 
 struct Shader {
