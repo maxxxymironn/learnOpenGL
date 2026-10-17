@@ -1,18 +1,14 @@
 #include "renderer.hpp"
-#include "glm/geometric.hpp"
+
 #include "glm/trigonometric.hpp"
-#include "logger.hpp"
+#include "src/core/logger.hpp"
 
-#include <glad/glad.h>
+#include "glad/glad.h"
+#include "glm/gtc/type_ptr.hpp"
+#include "glm/ext/matrix_clip_space.hpp"
+#include "glm/ext/matrix_transform.hpp"
 #define STB_IMAGE_IMPLEMENTATION
-#include <stb_image.h>
-
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtc/type_ptr.hpp>
-#include <glm/ext/matrix_clip_space.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/matrix.hpp>
+#include "stb_image.h"
 
 #include <sstream>
 #include <string>
@@ -20,32 +16,16 @@
 #include <iostream>
 
 namespace {
-    namespace Camera {
-        glm::vec3 pos = glm::vec3(0.f, 0.f, 5.f);
-        glm::vec3 front = glm::vec3(0.f, 0.f, -1.f);
-        glm::vec3 up = glm::vec3(0.f, 1.f, 0.f);
-        GLfloat delta = 0.f;
-        GLfloat fovDegrees = 45.f;
-    }
-    
     GLint viewMatrixUniLoc = 0;
     GLint projectionMatrixUniLoc = 0;
     GLint transformMatrixUniLoc = 0;
-    GLint colorCoeffUniLoc = 0;
-    
-    constexpr GLfloat vertices[] {
-        -0.5f, -0.5f,   1.f, 0.f, 0.f,   0.f, 0.f,
-         0.5f, -0.5f,   0.f, 1.f, 0.f,   1.f, 0.f,
-        -0.5f,  0.5f,   1.f, 0.f, 1.f,   0.f, 1.f,
-         0.5f,  0.5f,   0.f, 0.f, 1.f,   1.f, 1.f,
-    };
 
     constexpr GLfloat cube[] {
         // front side
-        -1.f, -1.f,  1.f,    0.f, 0.f,
-         1.f, -1.f,  1.f,    1.f, 0.f,
-        -1.f,  1.f,  1.f,    0.f, 1.f,
-         1.f,  1.f,  1.f,    1.f, 1.f,
+        -1.f, -1.f,  1.f,   0.f, 0.f,
+         1.f, -1.f,  1.f,   1.f, 0.f,
+        -1.f,  1.f,  1.f,   0.f, 1.f,
+         1.f,  1.f,  1.f,   1.f, 1.f,
         // back side
         -1.f, -1.f, -1.f,   0.f, 0.f,
          1.f, -1.f, -1.f,   1.f, 0.f,
@@ -91,19 +71,6 @@ namespace {
 
         20, 21, 22,
         22, 23, 21
-    };
-
-    constexpr glm::vec3 cubePositions[] = {
-        glm::vec3( 0.0f,  0.0f,  0.0f), 
-        glm::vec3( 2.0f,  5.0f, -15.0f), 
-        glm::vec3(-1.5f, -2.2f, -2.5f),  
-        glm::vec3(-3.8f, -2.0f, -12.3f),  
-        glm::vec3( 2.4f, -0.4f, -3.5f),  
-        glm::vec3(-1.7f,  3.0f, -7.5f),  
-        glm::vec3( 1.3f, -2.0f, -2.5f),  
-        glm::vec3( 1.5f,  2.0f, -2.5f), 
-        glm::vec3( 1.5f,  0.2f, -1.5f), 
-        glm::vec3(-1.3f,  1.0f, -1.5f)  
     };
 
     std::string loadShaderSource(const char* filename) {
@@ -227,12 +194,10 @@ namespace {
 }
 
 Renderer::Renderer()
-    : _vao(0)
-    , _vbo(0)
-    , _ebo(0)
+    : _vao(0), _vbo(0), _ebo(0)
     , _shader(linkShaderProgram())
-    , _texture(0)
-    , _textureData(nullptr)
+    , _aspectRatio(1.f)
+    , _polygonMode(PolygonMode::FILL)
 {
     if (_shader) {
         // 1) bind vao
@@ -260,14 +225,13 @@ Renderer::Renderer()
         glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
-        glClearColor(0.1f, 0.1f, 0.1f, 1.f);
         glBindVertexArray(_vao);
         glUseProgram(_shader);
 
         /* uniforms */
-        colorCoeffUniLoc = glGetUniformLocation(_shader, "colorCoeff");
-        if (colorCoeffUniLoc == -1)
-            Logger::getInstance().printErr("Uniform 'colorCoeff' not found in shaders");
+        // colorCoeffUniLoc = glGetUniformLocation(_shader, "colorCoeff");
+        // if (colorCoeffUniLoc == -1)
+        //     Logger::getInstance().printErr("Uniform 'colorCoeff' not found in shaders");
         
         transformMatrixUniLoc = glGetUniformLocation(_shader, "transformMatrix");
         if (transformMatrixUniLoc == -1)
@@ -301,7 +265,7 @@ Renderer::Renderer()
 
         // enable Z-test
         glEnable(GL_DEPTH_TEST);
-        
+        glClearColor(0.f, 0.f, 0.f, 1.f);
     }
 }
 
@@ -310,96 +274,33 @@ Renderer::~Renderer() {
     if (_vao) glDeleteVertexArrays(1, &_vao);
     if (_vbo) glDeleteBuffers(1, &_vbo);
     if (_ebo) glDeleteBuffers(1, &_ebo);
-    
-}
-
-void Renderer::setWireframeMode() { 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); 
-    _isWireframeMode = true;
-}
-void Renderer::setNormalMode() { 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    _isWireframeMode = false;
 }
 
 void Renderer::draw() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glm::mat4 transform(1.f);
+    transform = glm::translate(transform, glm::vec3(0.f, 0.f, -5.f));
+    
+    glm::mat4 projection = glm::perspective(glm::radians(_camera.fov()), _aspectRatio, 0.1f, 100.f);
+    
+    glm::mat4 view = glm::lookAt(
+        _camera.position(),
+        _camera.position() + _camera.front(),
+        _camera.up()
+    );
+
+    glUniformMatrix4fv(transformMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(transform));
+    glUniformMatrix4fv(projectionMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(viewMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(view));
+    
     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
 }
 
-void Renderer::updateColorCoeffUni(const float newValue) { 
-    glUniform1f(colorCoeffUniLoc, newValue);
-}
-
-void Renderer::updateTransformMatrixUni(float degrees, float moveX, float moveY, float moveZ, float aspect) {
-    glm::mat4 transform(1.f);
-    transform = glm::translate(transform, glm::vec3(moveX, moveY, moveZ));
-    transform = glm::rotate(transform, glm::radians(degrees), glm::vec3(0.5f, 1.f, 0.f));
-
-    glm::mat4 projection(1.f);
-    projection = glm::perspective(glm::radians(45.f), aspect, 0.1f, 100.f);
-    
-    glUniformMatrix4fv(transformMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(transform));
-    glUniformMatrix4fv(projectionMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(projection));
-}
-
-void Renderer::drawManyCubes(const float aspect, const float rotateDegrees) {
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-    glm::mat4 projection(1.f);
-    projection = glm::perspective(glm::radians(Camera::fovDegrees), aspect, 0.1f, 100.f);
-    // projection = glm::ortho(-3.f, 3.f, -3.f, 3.f, 0.1f, 100.f);
-    
-    glm::mat4 view(1.f);
-    view = glm::lookAt(
-        Camera::pos,
-        Camera::pos + Camera::front,
-        Camera::up
-    );
-    
-    glUniformMatrix4fv(viewMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(view));
-    glUniformMatrix4fv(projectionMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(projection));
-    
-    for (int i = 0; i < 10; ++i) {
-        glm::mat4 transform(1.f);        
-        transform = glm::translate(transform, cubePositions[i]);
-        transform = glm::rotate(transform, glm::radians(rotateDegrees + i * 20.f), glm::vec3(0.5f, 1.f, 0.f));        
-        transform = glm::scale(transform, glm::vec3(0.5f, 0.5f, 0.5f));
-                
-        glUniformMatrix4fv(transformMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(transform));
-
-        glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
+void Renderer::setPolygonMode(const PolygonMode newMode) {
+    _polygonMode = newMode;
+    switch (newMode) {
+        case PolygonMode::FILL: glPolygonMode(GL_FRONT_AND_BACK, GL_FILL); break;
+        case PolygonMode::LINE: glPolygonMode(GL_FRONT_AND_BACK, GL_LINE); break;
     }
-}
-
-void Renderer::moveCameraPos(const Direction dir, const GLfloat cameraSpeed) {
-    GLfloat speed = cameraSpeed * Camera::delta;
-    switch (dir) {
-        case Direction::RIGHT:
-            Camera::pos += glm::normalize(glm::cross(Camera::front, Camera::up)) * speed;
-            break;
-        case Direction::LEFT:
-            Camera::pos -= glm::normalize(glm::cross(Camera::front, Camera::up)) * speed;
-            break;
-        case Direction::FORWARD:
-            Camera::pos += Camera::front * speed; 
-            break;
-        case Direction::BACK:
-            Camera::pos -= Camera::front * speed; 
-            break;
-    }
-}
-
-void Renderer::moveCameraFront(const float pitch, const float yaw) {
-    glm::vec3 front;
-    front.x = std::cos(glm::radians(pitch)) * std::sin(glm::radians(yaw));
-    front.y = std::sin(glm::radians(pitch));
-    front.z = std::cos(glm::radians(pitch)) * std::cos(glm::radians(yaw));
-    Camera::front = glm::normalize(front);
-}
-
-void Renderer::updateDeltaTime(const float deltaTime) { Camera::delta = deltaTime; }
-
-void Renderer::changeCameraFov(const float fov) {
-    Camera::fovDegrees = fov;
 }

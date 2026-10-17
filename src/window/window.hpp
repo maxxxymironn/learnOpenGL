@@ -1,19 +1,16 @@
 #pragma once
-#include "vector.hpp"
-#include "inputEnum.hpp"
-
-#include <functional>
+#include "src/core/vector.hpp"
+#include "src/input/iInputListener.hpp"
+#include "src/render/iRendererListener.hpp"
 
 struct GLFWwindow;
 
 class Window {    
     GLFWwindow* _handle;
     vec2i _size;
-    bool _status;
 
-    std::function<void(const Key key, const bool isPressed)> _updateKeyStatus;
-    std::function<void(const Mouse key, const float value)> _updateMouseStatus;
-    std::function<void(const float value)> _updateMouseScroll;
+    IInputListener* _inputListener;
+    IRendererListener* _rendererListener;
 
     static void _keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods);
     static void _framebufferSizeCallback(GLFWwindow* window, int width, int height);
@@ -24,9 +21,8 @@ public:
     Window(const int x=800, const int y=800, const bool vsync=true);
     ~Window();
 
-    void setFunUpdateKeyStatus(std::function<void(const Key, const bool)> fun) { _updateKeyStatus = fun; }
-    void setFunUpdateMouseStatus(std::function<void(const Mouse, const float)> fun) { _updateMouseStatus = fun; }
-    void setFunUpdateMouseScroll(std::function<void(const float)> fun) { _updateMouseScroll = fun; }
+    void setInputListener(IInputListener* listener) { _inputListener = listener; }
+    void setRendererListener(IRendererListener* listener) { _rendererListener = listener; }
 
     float getTime() const;
     bool getStatus() const { return _handle; }

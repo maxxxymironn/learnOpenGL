@@ -5,11 +5,15 @@ in vec2 f_texCoord;
 
 out vec4 color;
 
-uniform float colorCoeff;
 uniform sampler2D tex1;
 uniform sampler2D tex2;
 
 void main() {    
     // color = mix(texture(tex2, f_texCoord) * vec4(f_color, 1.f), texture(tex1, f_texCoord) * colorCoeff, 0.9f);
-    color = texture(tex1, f_texCoord);
+    // color = texture(tex1, f_texCoord);
+    
+    vec4 lightColor = vec4(1.f, 1.f, 1.f, 1.f);
+    vec4 cubeColor = vec4(0.5f, 0.3f, 0.1f, 1.f);
+    
+    color = lightColor * cubeColor;
 }

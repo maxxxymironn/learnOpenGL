@@ -1,6 +1,6 @@
 #include "window.hpp"
 
-#include "logger.hpp"
+#include "src/core/logger.hpp"
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -12,6 +12,8 @@ void Window::_framebufferSizeCallback(GLFWwindow* window, int width, int height)
     Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (self) {
         self->_size = { width, height };
+        float aspectRatio = static_cast<float>(width) / height;
+        self->_rendererListener->updateAspectRatio(aspectRatio);
     }
     
     glViewport(0, 0, width, height);
@@ -22,16 +24,16 @@ void Window::_keyCallback(GLFWwindow *window, int key, int scancode, int action,
     if (self) {
         switch (key) {
             case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(window, GLFW_TRUE); break;
-            case GLFW_KEY_M: self->_updateKeyStatus(Key::POLYGON_MODE, action); break;
-            case GLFW_KEY_D: self->_updateKeyStatus(Key::RIGHT, action); break;
-            case GLFW_KEY_RIGHT: self->_updateKeyStatus(Key::RIGHT, action); break;
-            case GLFW_KEY_A: self->_updateKeyStatus(Key::LEFT, action); break;
-            case GLFW_KEY_LEFT: self->_updateKeyStatus(Key::LEFT, action); break;
-            case GLFW_KEY_W: self->_updateKeyStatus(Key::UP, action); break;
-            case GLFW_KEY_UP: self->_updateKeyStatus(Key::UP, action); break;
-            case GLFW_KEY_S: self->_updateKeyStatus(Key::DOWN, action); break;
-            case GLFW_KEY_DOWN: self->_updateKeyStatus(Key::DOWN, action); break;
-            case GLFW_KEY_LEFT_SHIFT: self->_updateKeyStatus(Key::SHIFT, action); break;
+            case GLFW_KEY_M: self->_inputListener->updateKeyStatus(Key::POLYGON_MODE, action); break;
+            case GLFW_KEY_D: self->_inputListener->updateKeyStatus(Key::RIGHT, action); break;
+            case GLFW_KEY_RIGHT: self->_inputListener->updateKeyStatus(Key::RIGHT, action); break;
+            case GLFW_KEY_A: self->_inputListener->updateKeyStatus(Key::LEFT, action); break;
+            case GLFW_KEY_LEFT: self->_inputListener->updateKeyStatus(Key::LEFT, action); break;
+            case GLFW_KEY_W: self->_inputListener->updateKeyStatus(Key::UP, action); break;
+            case GLFW_KEY_UP: self->_inputListener->updateKeyStatus(Key::UP, action); break;
+            case GLFW_KEY_S: self->_inputListener->updateKeyStatus(Key::DOWN, action); break;
+            case GLFW_KEY_DOWN: self->_inputListener->updateKeyStatus(Key::DOWN, action); break;
+            case GLFW_KEY_LEFT_SHIFT: self->_inputListener->updateKeyStatus(Key::SHIFT, action); break;
             default: break;
         }
     }
@@ -45,8 +47,8 @@ void Window::_windowFocusCallback(GLFWwindow* window, int focused) {
             
             vec2d cursorPos;
             glfwGetCursorPos(window, &cursorPos.x, &cursorPos.y);
-            self->_updateMouseStatus(Mouse::X_POS, cursorPos.x);
-            self->_updateMouseStatus(Mouse::Y_POS, cursorPos.y);
+            self->_inputListener->updateMouseStatus(Mouse::X_POS, cursorPos.x);
+            self->_inputListener->updateMouseStatus(Mouse::Y_POS, cursorPos.y);
             
             glfwSetCursorPosCallback(window, Window::_cursorPosCallback);
         }
@@ -60,8 +62,8 @@ void Window::_windowFocusCallback(GLFWwindow* window, int focused) {
 void Window::_cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
     Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (self) {
-        self->_updateMouseStatus(Mouse::X_POS, xpos);
-        self->_updateMouseStatus(Mouse::Y_POS, ypos);
+        self->_inputListener->updateMouseStatus(Mouse::X_POS, xpos);
+        self->_inputListener->updateMouseStatus(Mouse::Y_POS, ypos);
     }
 }
 
@@ -71,13 +73,15 @@ void Window::_scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 
     Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (self) {
-        self->_updateMouseScroll(yoffset);
+        self->_inputListener->updateMouseScroll(yoffset);
     }
 }
 
 Window::Window(const int x, const int y, const bool vsync)
     : _handle(nullptr)
     , _size(x, y)
+    , _inputListener(nullptr)
+    , _rendererListener(nullptr)
 {
     if (!glfwInit()) {
         Logger::getInstance().printErr("Initialize glfw failed");

@@ -12,9 +12,9 @@ target_compile_options(opengl PRIVATE -Wall -Wextra -Wpedantic)
 
 target_sources(opengl PRIVATE
   src/main.cpp
-  src/renderer.cpp
-  src/window.cpp
-  src/logger.cpp
+  src/render/renderer.cpp
+  src/window/window.cpp
+  src/core/logger.cpp
 )
 
 target_compile_definitions(opengl PRIVATE
@@ -33,9 +33,11 @@ set(GLFW_BUILD_EXAMPLES OFF)
 add_subdirectory(external/glfw SYSTEM)
 
 #stbi_image
-target_include_directories(opengl PRIVATE external/stbi_image)
-
-#glm
+target_include_directories(opengl PRIVATE 
+  external/stbi_image
+  external
+  ${CMAKE_SOURCE_DIR}
+)
 target_include_directories(opengl PRIVATE external)
 
 target_link_libraries(opengl PRIVATE

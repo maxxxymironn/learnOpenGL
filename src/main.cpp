@@ -1,10 +1,7 @@
-#include "timeHandler.hpp"
-#include "window.hpp"
-#include "renderer.hpp"
-#include "inputHandler.hpp"
-
-#include <cmath>
-#include <functional>
+#include "src/core/timeHandler.hpp"
+#include "src/window/window.hpp"
+#include "src/render/renderer.hpp"
+#include "src/input/inputHandler.hpp"
 
 namespace {
     constexpr int WIDTH = 800;
@@ -15,7 +12,7 @@ namespace {
     constexpr bool VSYNC = true;
 }
 
-void checkInput(InputHandler& input, Renderer& renderer);
+void checkInput(InputHandler& input, Renderer& renderer, TimeHandler& clock);
 
 int main() {
     InputHandler input;
@@ -23,55 +20,51 @@ int main() {
     if (!window.getStatus()) return 1;
     
     Renderer renderer;
-    if (!renderer.initializeSuccess()) return 1;
+    if (!renderer.getStatus()) return 1;
     
     TimeHandler clock(MAX_FPS);
 
-    window.setFunUpdateKeyStatus([&input](const Key key, const bool isPressed) { input.updateKeyStatus(key, isPressed); });
-    window.setFunUpdateMouseStatus([&input](const Mouse key, const float value) { input.updateMouseStatus(key, value); });    
-    window.setFunUpdateMouseScroll([&input](const float value) { input.updateMouseScroll(value); });
+    window.setInputListener(&input);
+    window.setRendererListener(&renderer);
     
     while(!window.shouldClose()) {
         if constexpr (!VSYNC) clock.waitFramerate(window.getTime());
         clock.update(window.getTime());
         if (clock.newFps) window.refreshTitle(clock.prevFrameAccumulator);
         
-        checkInput(input, renderer);
+        checkInput(input, renderer, clock);
 
-        float time = window.getTime();
-        renderer.updateDeltaTime(clock.deltaTime);
-        renderer.updateColorCoeffUni(std::sin(time) * 0.5f + 0.5f);
-        vec2f windowSize = window.getSize();
-        float aspect = windowSize.x / windowSize.y;
-        renderer.drawManyCubes(aspect, time * 50.f);
-        
+        renderer.draw();
         window.endFrame();
     }
 
     return 0;
 }
 
-void checkInput(InputHandler& input, Renderer& renderer) {
+void checkInput(InputHandler& input, Renderer& renderer, TimeHandler& clock) {
     if (input.isKeyPressed(Key::POLYGON_MODE)) {
-        renderer.isWireframeMode() ? renderer.setNormalMode()
-                                   : renderer.setWireframeMode();
+        renderer.setPolygonMode(
+            renderer.getPolygonMode() == PolygonMode::FILL 
+                                       ? PolygonMode::LINE
+                                       : PolygonMode::FILL
+        );
     }
 
-    float cameraSpeed = 5.f;
-    if (input.isKeyDown(Key::SHIFT)) {
-        cameraSpeed = 20.f;
-    }
+    renderer.camera().updateSpeed(
+        (input.isKeyDown(Key::SHIFT) ? 20.f : 5.f) * clock.frameTime
+    );
+        
     if (input.isKeyDown(Key::RIGHT) || input.isKeyPressed(Key::RIGHT)) {
-        renderer.moveCameraPos(Direction::RIGHT, cameraSpeed);
+        renderer.camera().updatePosition(Direction::RIGHT);
     }
     if (input.isKeyDown(Key::LEFT) || input.isKeyPressed(Key::LEFT)) {
-        renderer.moveCameraPos(Direction::LEFT, cameraSpeed);
+        renderer.camera().updatePosition(Direction::LEFT);
     }
     if (input.isKeyDown(Key::DOWN) || input.isKeyPressed(Key::DOWN)) {
-        renderer.moveCameraPos(Direction::BACK, cameraSpeed);
+        renderer.camera().updatePosition(Direction::BACK);
     }
     if (input.isKeyDown(Key::UP) || input.isKeyPressed(Key::UP)) {
-        renderer.moveCameraPos(Direction::FORWARD, cameraSpeed);
+        renderer.camera().updatePosition(Direction::FORWARD);
     }
     if (input.isMouseMoved()) {
         static float yaw = 180.f;
@@ -85,7 +78,7 @@ void checkInput(InputHandler& input, Renderer& renderer) {
         if (pitch > 89.f) pitch = 89.f;
         else if (pitch < -89.f) pitch = -89.f;
         
-        renderer.moveCameraFront(pitch, yaw);
+        renderer.camera().updateFront(pitch, yaw);
     }
     if (input.isMouseScrolled()) {
         static float fov = 45.f;
@@ -95,7 +88,7 @@ void checkInput(InputHandler& input, Renderer& renderer) {
         if (fov < 1.f) fov = 1.f;
         else if (fov > 80.f) fov = 80.f;
         
-        renderer.changeCameraFov(fov);
+        renderer.camera().updateFov(fov);
     }
 
     input.refreshBuffers();

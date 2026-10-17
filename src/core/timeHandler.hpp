@@ -4,8 +4,8 @@
 #include <thread>
 
 struct TimeHandler {
-    float deltaTime = 0.f;
-    float deltaAccumulator = 0.f;
+    float frameTime = 0.f;
+    float frameTimeAccumulator = 0.f;
     
     float currentFrame = 0.f;
     float lastFrame = 0.f;
@@ -19,26 +19,26 @@ struct TimeHandler {
     
     void waitFramerate(const float curTime) {
         currentFrame = curTime;
-        deltaTime = currentFrame - lastFrame;
-        if (deltaTime < _maxFrametime)
-            std::this_thread::sleep_for(std::chrono::duration<float>(_maxFrametime - deltaTime));
+        frameTime = currentFrame - lastFrame;
+        if (frameTime < _maxFrametime)
+            std::this_thread::sleep_for(std::chrono::duration<float>(_maxFrametime - frameTime));
     }
 
     void update(const float curTime) {
         currentFrame = curTime;
-        deltaTime = currentFrame - lastFrame;
+        frameTime = currentFrame - lastFrame;
         lastFrame = currentFrame;
 
         ++frameAccumulator;
-        deltaAccumulator += deltaTime;
+        frameTimeAccumulator += frameTime;
         newFps = false;
-        if (deltaAccumulator >= 1.f) {
+        if (frameTimeAccumulator >= 1.f) {
             if (frameAccumulator != prevFrameAccumulator) {
                 prevFrameAccumulator = frameAccumulator;
                 newFps = true;
             }
             frameAccumulator = 0;
-            deltaAccumulator = 0.f;
+            frameTimeAccumulator = 0.f;
         }
     }
 };

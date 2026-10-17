@@ -1,11 +1,11 @@
 #pragma once
-
-#include "vector.hpp"
+#include "iInputListener.hpp"
+#include "src/core/vector.hpp"
 #include "inputEnum.hpp"
 
 #include <array>
 
-class InputHandler {
+class InputHandler: public IInputListener {
     std::array<bool, static_cast<int>(Key::COUNT)> currKeys{false};
     std::array<bool, static_cast<int>(Key::COUNT)> prevKeys{false};
 
@@ -16,15 +16,15 @@ class InputHandler {
     bool isScrolled = false;
 
 public:
-    void updateKeyStatus(const Key key, const bool isPressed) {
+    void updateKeyStatus(const Key key, const bool isPressed) override {
         currKeys[static_cast<int>(key)] = isPressed;
     }
 
-    void updateMouseStatus(const Mouse var, const float value) {
+    void updateMouseStatus(const Mouse var, const float value) override {
         currMouse[static_cast<int>(var)] = value;
     }
 
-    void updateMouseScroll(const float value) {
+    void updateMouseScroll(const float value) override {
         scrollOffset = value;
         isScrolled = true;
     }
