@@ -19,58 +19,45 @@ namespace {
     GLint viewMatrixUniLoc = 0;
     GLint projectionMatrixUniLoc = 0;
     GLint transformMatrixUniLoc = 0;
+    
+    GLint cubeColorUniLoc = 0;
+    GLint lightColorUniLoc = 0;
+
+    constexpr float cubeColor[3] = { 0.5f, 0.3f, 0.1f };
+    constexpr float lightColor[3] = { 1.f, 1.f, 1.f };
 
     constexpr GLfloat cube[] {
         // front side
-        -1.f, -1.f,  1.f,   0.f, 0.f,
-         1.f, -1.f,  1.f,   1.f, 0.f,
-        -1.f,  1.f,  1.f,   0.f, 1.f,
-         1.f,  1.f,  1.f,   1.f, 1.f,
+        -1.f, -1.f,  1.f,   0.f, 0.f,   // lb
+         1.f, -1.f,  1.f,   1.f, 0.f,   // rb
+        -1.f,  1.f,  1.f,   0.f, 1.f,   // lt
+         1.f,  1.f,  1.f,   1.f, 1.f,   // rt
         // back side
-        -1.f, -1.f, -1.f,   0.f, 0.f,
-         1.f, -1.f, -1.f,   1.f, 0.f,
-        -1.f,  1.f, -1.f,   0.f, 1.f,
-         1.f,  1.f, -1.f,   1.f, 1.f,
-        // top side
-        -1.f,  1.f,  1.f,   0.f, 0.f,
-        -1.f,  1.f, -1.f,   0.f, 1.f,
-         1.f,  1.f,  1.f,   1.f, 0.f,
-         1.f,  1.f, -1.f,   1.f, 1.f,
-        // bottom side
-        -1.f, -1.f,  1.f,   0.f, 0.f,
-         1.f, -1.f,  1.f,   1.f, 0.f,
-        -1.f, -1.f, -1.f,   0.f, 1.f,
-         1.f, -1.f, -1.f,   1.f, 1.f,
-        // left side
-        -1.f, -1.f,  1.f,   0.f, 0.f,
-        -1.f, -1.f, -1.f,   1.f, 0.f,
-        -1.f,  1.f,  1.f,   0.f, 1.f,
-        -1.f,  1.f, -1.f,   1.f, 1.f,
-        // rigth side
-         1.f, -1.f,  1.f,   0.f, 0.f,
-         1.f, -1.f, -1.f,   1.f, 0.f,
-         1.f,  1.f,  1.f,   0.f, 1.f,
-         1.f,  1.f, -1.f,   1.f, 1.f,
+        -1.f, -1.f, -1.f,   0.f, 0.f,   // lb
+         1.f, -1.f, -1.f,   1.f, 0.f,   // rb
+        -1.f,  1.f, -1.f,   0.f, 1.f,   // lt
+         1.f,  1.f, -1.f,   1.f, 1.f    // rt
     };
 
     constexpr GLuint indices[] = {
+        // front
         0, 1, 2,
         2, 3, 1,
-
+        // back
         4, 5, 6,
         6, 7, 5,
-
-        8, 9, 10,
-        10, 11, 9,
-
-        12, 13, 14,
-        14, 15, 13,
-
-        16, 17, 18,
-        18, 19, 17,
-
-        20, 21, 22,
-        22, 23, 21
+        // top
+        2, 3, 7,
+        7, 6, 2,
+        // bottom
+        0, 1, 5,
+        5, 4, 0,
+        // right
+        1, 5, 7,
+        7, 3, 1,
+        // left
+        0, 4, 6,
+        6, 2, 0
     };
 
     std::string loadShaderSource(const char* filename) {
@@ -194,44 +181,42 @@ namespace {
 }
 
 Renderer::Renderer()
-    : _vao(0), _vbo(0), _ebo(0)
+    : _vao(0), _vao2(0), _vbo(0), _ebo(0)
     , _shader(linkShaderProgram())
     , _aspectRatio(1.f)
     , _polygonMode(PolygonMode::FILL)
 {
     if (_shader) {
-        // 1) bind vao
         glGenVertexArrays(1, &_vao);
         glBindVertexArray(_vao);
 
-        // 2) bind and setting vbo
         glGenBuffers(1, &_vbo);
         glBindBuffer(GL_ARRAY_BUFFER, _vbo);
-
         glBufferData(GL_ARRAY_BUFFER, sizeof(cube), cube, GL_STATIC_DRAW);
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)0);
 
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)(sizeof(GLfloat) * 3));
-
-        // 4) bind and setting ebo
         glGenBuffers(1, &_ebo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
         glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
-        // unbind all objects
-        glBindVertexArray(0);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        
-        glBindVertexArray(_vao);
-        glUseProgram(_shader);
+        glBindVertexArray(0);
 
-        /* uniforms */
-        // colorCoeffUniLoc = glGetUniformLocation(_shader, "colorCoeff");
-        // if (colorCoeffUniLoc == -1)
-        //     Logger::getInstance().printErr("Uniform 'colorCoeff' not found in shaders");
+        // light VAO
+        glGenVertexArrays(1, &_vao2);
+        glBindVertexArray(_vao2);
+
+        glBindBuffer(GL_ARRAY_BUFFER, _vbo);
+
+        glEnableVertexAttribArray(0);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 5, (GLvoid*)0);
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
+
+        glBindVertexArray(0);
+        glUseProgram(_shader);
         
         transformMatrixUniLoc = glGetUniformLocation(_shader, "transformMatrix");
         if (transformMatrixUniLoc == -1)
@@ -244,34 +229,27 @@ Renderer::Renderer()
         viewMatrixUniLoc = glGetUniformLocation(_shader, "viewMatrix");
         if (viewMatrixUniLoc == -1)
             Logger::getInstance().printErr("Uniform 'viewMatrix' not found");
-        
-        /* textures */
-        stbi_set_flip_vertically_on_load(true);
-        int textureCount = 0;
-        
-        // load texture №1
-        std::string imagePath(IMAGES_DIR);
-        imagePath += "tex3.jpg";
-        loadTexture(imagePath.c_str(), textureCount);
-        glUniform1i(glGetUniformLocation(_shader, "tex1"), textureCount);
-        ++textureCount;
-        
-        // load texture №2
-        imagePath = IMAGES_DIR;
-        imagePath += "tex2.jpg";
-        loadTexture(imagePath.c_str(), textureCount);
-        glUniform1i(glGetUniformLocation(_shader, "tex2"), textureCount);
-        ++textureCount;
 
-        // enable Z-test
+        cubeColorUniLoc = glGetUniformLocation(_shader, "cubeColor");
+        if (cubeColorUniLoc == -1)
+            Logger::getInstance().printErr("Uniform 'cubeColor' not found");
+        
+        lightColorUniLoc = glGetUniformLocation(_shader, "lightColor");
+        if (lightColorUniLoc == -1)
+            Logger::getInstance().printErr("Uniform 'lightColor' not found");
+        
+        glUniform3f(cubeColorUniLoc, cubeColor[0], cubeColor[1], cubeColor[2]);
+        glUniform3f(lightColorUniLoc, lightColor[0], lightColor[1], lightColor[2]);
+        
         glEnable(GL_DEPTH_TEST);
-        glClearColor(0.f, 0.f, 0.f, 1.f);
+        glClearColor(0.1f, 0.1f, 0.1f, 1.f);
     }
 }
 
 Renderer::~Renderer() {
     if (_shader) glDeleteProgram(_shader);
     if (_vao) glDeleteVertexArrays(1, &_vao);
+    if (_vao2) glDeleteVertexArrays(1, &_vao2);
     if (_vbo) glDeleteBuffers(1, &_vbo);
     if (_ebo) glDeleteBuffers(1, &_ebo);
 }
@@ -280,19 +258,30 @@ void Renderer::draw() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
     glm::mat4 transform(1.f);
-    transform = glm::translate(transform, glm::vec3(0.f, 0.f, -5.f));
-    
     glm::mat4 projection = glm::perspective(glm::radians(_camera.fov()), _aspectRatio, 0.1f, 100.f);
-    
     glm::mat4 view = glm::lookAt(
         _camera.position(),
         _camera.position() + _camera.front(),
         _camera.up()
     );
-
-    glUniformMatrix4fv(transformMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(transform));
+    
     glUniformMatrix4fv(projectionMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(projection));
     glUniformMatrix4fv(viewMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(view));
+    
+    glBindVertexArray(_vao); // -------------- vao
+    glUniform3f(cubeColorUniLoc, cubeColor[0], cubeColor[1], cubeColor[2]);
+    
+    transform = glm::translate(transform, glm::vec3(0.f, 0.f, -5.f));
+    glUniformMatrix4fv(transformMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(transform));
+    
+    glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
+
+    glBindVertexArray(_vao2); // -------------- vao2
+    glUniform3f(cubeColorUniLoc, lightColor[0], lightColor[1], lightColor[2]);
+    
+    transform = glm::translate(transform, glm::vec3(3.f, 3.f, -4.f));
+    transform = glm::scale(transform, glm::vec3(0.3f, 0.3f, 0.3f));
+    glUniformMatrix4fv(transformMatrixUniLoc, 1, GL_FALSE, glm::value_ptr(transform));
     
     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
 }

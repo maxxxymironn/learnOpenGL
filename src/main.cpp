@@ -8,7 +8,7 @@ namespace {
     constexpr int HEIGHT = 800;
     constexpr float MOUSE_SENSITIVITY = 1.f;
     
-    constexpr int MAX_FPS = 60;     // if VSYNC=false
+    constexpr int MAX_FPS = 180;     // if VSYNC=false
     constexpr bool VSYNC = true;
 }
 

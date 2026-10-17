@@ -8,7 +8,7 @@ enum class PolygonMode: unsigned char {
 };
 
 class Renderer: public IRendererListener {
-    unsigned int _vao, _vbo, _ebo;
+    unsigned int _vao, _vao2, _vbo, _ebo;
     unsigned int _shader;
     float _aspectRatio;
     

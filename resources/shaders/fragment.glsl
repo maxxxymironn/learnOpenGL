@@ -1,19 +1,10 @@
 #version 330 core
 
-// in vec3 f_color;
-in vec2 f_texCoord;
-
 out vec4 color;
 
-uniform sampler2D tex1;
-uniform sampler2D tex2;
+uniform vec3 lightColor;
+uniform vec3 cubeColor;
 
-void main() {    
-    // color = mix(texture(tex2, f_texCoord) * vec4(f_color, 1.f), texture(tex1, f_texCoord) * colorCoeff, 0.9f);
-    // color = texture(tex1, f_texCoord);
-    
-    vec4 lightColor = vec4(1.f, 1.f, 1.f, 1.f);
-    vec4 cubeColor = vec4(0.5f, 0.3f, 0.1f, 1.f);
-    
-    color = lightColor * cubeColor;
+void main() {
+    color = vec4(lightColor * cubeColor, 1.f);
 }
