@@ -11,6 +11,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include <iostream>
+
 namespace {
     constexpr float cubeColor[3] = { 1.f, 0.0f, 0.0f };
     constexpr float lightColor[3] = { 1.f, 1.f, 1.f };
@@ -107,8 +109,8 @@ namespace {
 }
 
 Renderer::Renderer()
-    : _shader1(Shader("vertex.glsl", "fragment.glsl"))
-    , _shader2(Shader("vertex.glsl", "fragment2.glsl"))
+    : _shader1(Shader("object.vert", "object.frag"))
+    , _shader2(Shader("light.vert", "light.frag"))
     , _vao(0), _vao2(0), _vbo(0), _ebo(0)
     , _aspectRatio(1.f)
     , _polygonMode(PolygonMode::FILL)

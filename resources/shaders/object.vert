@@ -15,6 +15,5 @@ void main() {
     
     fragmentPos = model.xyz;
     normalVec = mat3(transpose(inverse(transformMatrix))) * normal;
-    // normalVec = normal;
     gl_Position = projectionMatrix * viewMatrix * model;
 }

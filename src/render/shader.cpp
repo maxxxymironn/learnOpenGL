@@ -15,8 +15,12 @@ namespace {
 
         std::ifstream file(shaderPath);
         if (!file.is_open()) {
-            Logger::getInstance().printErr("Open shader file failed");
-            return nullptr;
+            std::string err("Open shader '");
+            err += filename;
+            err += "' failed";
+            
+            Logger::getInstance().printErr(err.c_str());
+            return "";
         }
         
         file.exceptions(std::ios::badbit | std::ios::failbit);
@@ -26,8 +30,12 @@ namespace {
             return ss.str();
         }
         catch (const std::ifstream::failure&) {
+            std::string err("Read shader '");
+            err += filename;
+            err += "' failed";
+            
             Logger::getInstance().printErr("Read shader file failed");
-            return nullptr;
+            return "";
         }
     }
 
