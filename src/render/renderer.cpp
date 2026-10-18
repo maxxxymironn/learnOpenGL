@@ -11,13 +11,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
-#include <iostream>
-
 namespace {
-    constexpr float cubeColor[3] = { 1.f, 0.0f, 0.0f };
+    constexpr float lightPos[3] = { 2.f, 3.f, -1.f };
     constexpr float lightColor[3] = { 1.f, 1.f, 1.f };
-
-    constexpr float lightPos[3] = { 3.5f, 2.5f, -3.f };
     
     constexpr GLfloat cube[] {
         //  position        texCoord        normales
@@ -155,25 +151,49 @@ Renderer::Renderer()
         _shader1.setUniLoc(UniName::TRANSFORM_MTX, "transformMatrix");
         _shader1.setUniLoc(UniName::PROJECTION_MTX, "projectionMatrix");
         _shader1.setUniLoc(UniName::VIEW_MTX, "viewMatrix");
-        _shader1.setUniLoc(UniName::CUBE_COLOR, "cubeColor");
-        _shader1.setUniLoc(UniName::LIGHT_COLOR, "lightColor");
-        _shader1.setUniLoc(UniName::LIGHT_POS, "lightPos");
         _shader1.setUniLoc(UniName::VIEW_POS, "viewPos");
-        
-        glUniform3f(
-            _shader1.getUniLoc(UniName::CUBE_COLOR), cubeColor[0], cubeColor[1], cubeColor[2]
-        );
-        glUniform3f(
-            _shader1.getUniLoc(UniName::LIGHT_COLOR), lightColor[0], lightColor[1], lightColor[2]
-        );
-        glUniform3f(
-            _shader1.getUniLoc(UniName::LIGHT_POS), lightPos[0], lightPos[1], lightPos[2]
-        );
+
+        _shader1.setUniLoc("light.position");
+        _shader1.setUniLoc("light.ambient");
+        _shader1.setUniLoc("light.diffuse");
+        _shader1.setUniLoc("light.specular");
+
+        _shader1.setUniLoc("material.ambient");
+        _shader1.setUniLoc("material.diffuse");
+        _shader1.setUniLoc("material.specular");
+        _shader1.setUniLoc("material.shininess");
+
         glUniform3f(
             _shader1.getUniLoc(UniName::VIEW_POS),
             _camera.position().x, _camera.position().y, _camera.position().z
         );
         
+        glUniform3f(
+            _shader1.getUniLoc("light.position"), lightPos[0], lightPos[1], lightPos[2]
+        );
+        glUniform3f(
+            _shader1.getUniLoc("light.diffuse"), lightColor[0], lightColor[1], lightColor[2]
+        );
+        glUniform3f(
+            _shader1.getUniLoc("light.ambient"), 0.05f, 0.05f, 0.05f
+        );
+        glUniform3f(
+            _shader1.getUniLoc("light.specular"), 1.f, 1.f, 1.f
+        );
+
+        glUniform3f(
+            _shader1.getUniLoc("material.ambient"), 0.19225f, 0.19225f, 0.19225f
+        );
+        glUniform3f(
+            _shader1.getUniLoc("material.diffuse"), 0.50754f, 0.50754f, 0.50754f
+        );
+        glUniform3f(
+            _shader1.getUniLoc("material.specular"), 0.508273f, 0.508273f, 0.508273f
+        );
+        glUniform1f(
+            _shader1.getUniLoc("material.shininess"), 64.f
+        );
+
         _shader2.use();
         _shader2.setUniLoc(UniName::TRANSFORM_MTX, "transformMatrix");
         _shader2.setUniLoc(UniName::PROJECTION_MTX, "projectionMatrix");
@@ -215,7 +235,6 @@ void Renderer::draw() {
     );
         
     glBindVertexArray(_vao);
-    glUniform3f(_shader1.getUniLoc(UniName::CUBE_COLOR), cubeColor[0], cubeColor[1], cubeColor[2]);
 
     transform = glm::translate(transform, glm::vec3(0.f, 0.f, -5.f));
     glUniformMatrix4fv(_shader1.getUniLoc(UniName::TRANSFORM_MTX), 1, GL_FALSE, glm::value_ptr(transform));

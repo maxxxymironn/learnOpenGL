@@ -119,3 +119,37 @@ void Shader::setUniLoc(const UniName uniform, const char* uniName) {
         Logger::getInstance().printErr(msg.c_str());
     }
 }
+
+void Shader::setUniLoc(const char* uniform) {
+    uniStrLocations[uniform] = glGetUniformLocation(id, uniform);
+    if (uniStrLocations[uniform] == -1) {
+        std::string msg("Uniform '");
+        msg += uniform; 
+        msg += "' not found";
+        Logger::getInstance().printErr(msg.c_str());
+    }
+}
+
+int Shader::getUniLoc(const UniName uniform) { 
+    auto it = uniLocations.find(uniform);
+    if (it == uniLocations.end()) {
+        std::string err("Uniform with type_id='");
+        err += static_cast<int>(uniform);
+        err += "' not created";
+        Logger::getInstance().printErr(err.c_str());
+        throw;
+    }
+    return it->second;
+}
+
+int Shader::getUniLoc(const char* uniform) {
+    auto it = uniStrLocations.find(uniform);
+    if (it == uniStrLocations.end()) {
+        std::string err("Uniform with name='");
+        err += uniform;
+        err += "' not created";
+        Logger::getInstance().printErr(err.c_str());
+        throw;
+    }
+    return it->second;
+}
