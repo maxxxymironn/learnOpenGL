@@ -9,7 +9,7 @@ struct Material {
 
 struct Light {
     vec3 position;
-
+    
     vec3 ambient;
     vec3 diffuse;   // ligth self color
     vec3 specular;
@@ -41,9 +41,12 @@ void main() {
     vec3 reflectedLightDir = reflect(-lightDir, normal);
     vec3 viewDir = normalize(viewPos - vertexPos);
     float specularityCoeff = max(dot(reflectedLightDir, viewDir), 0.f);
-
-    vec3 specular = vec3(texture(material.specular, texCoords)) * light.specular * pow(specularityCoeff, material.shininess);
+    
+    vec3 test = vec3(1.f) - vec3(texture(material.specular, texCoords));
+    float testCoeff = sign(step(1.f, test.x) + step(1.f, test.y) + step(1.f, test.z));
+    
+    vec3 specular = test * testCoeff * light.specular * pow(specularityCoeff, material.shininess);
     specular *= step(0.f, rawDiffuseCoeff);
-
+    
     color = vec4(ambient + diffuse + specular, 1.f);
 }
