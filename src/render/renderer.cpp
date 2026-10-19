@@ -11,6 +11,8 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#include <string>
+
 namespace {
     constexpr float lightPos[3] = { 2.f, 3.f, -1.f };
     constexpr float lightColor[3] = { 1.f, 1.f, 1.f };
@@ -123,7 +125,10 @@ Renderer::Renderer()
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 8, (GLvoid*)0);
 
         glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 8, (GLvoid*)(5 * sizeof(GLfloat)));
+        glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 8, (GLvoid*)(3 * sizeof(GLfloat)));
+
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 8, (GLvoid*)(5 * sizeof(GLfloat)));
 
         glGenBuffers(1, &_ebo);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
@@ -158,7 +163,7 @@ Renderer::Renderer()
         _shader1.setUniLoc("light.diffuse");
         _shader1.setUniLoc("light.specular");
 
-        _shader1.setUniLoc("material.ambient");
+        // _shader1.setUniLoc("material.ambient");
         _shader1.setUniLoc("material.diffuse");
         _shader1.setUniLoc("material.specular");
         _shader1.setUniLoc("material.shininess");
@@ -181,15 +186,26 @@ Renderer::Renderer()
             _shader1.getUniLoc("light.specular"), 1.f, 1.f, 1.f
         );
 
-        glUniform3f(
-            _shader1.getUniLoc("material.ambient"), 0.19225f, 0.19225f, 0.19225f
-        );
-        glUniform3f(
-            _shader1.getUniLoc("material.diffuse"), 0.50754f, 0.50754f, 0.50754f
-        );
-        glUniform3f(
-            _shader1.getUniLoc("material.specular"), 0.508273f, 0.508273f, 0.508273f
-        );
+        // glUniform3f(
+        //     _shader1.getUniLoc("material.ambient"), 0.19225f, 0.19225f, 0.19225f
+        // );
+        // glUniform3f(
+        //     _shader1.getUniLoc("material.diffuse"), 0.50754f, 0.50754f, 0.50754f
+        // );
+        // glUniform3f(
+        //     _shader1.getUniLoc("material.specular"), 0.508273f, 0.508273f, 0.508273f
+        // );
+        {
+            std::string texPath(IMAGES_DIR);
+            texPath += "container.png";
+            loadTexture(texPath.c_str(), 0);
+            
+            texPath = IMAGES_DIR;
+            texPath += "container_border.png";
+            loadTexture(texPath.c_str(), 1);
+        }
+        glUniform1i(_shader1.getUniLoc("material.diffuse"), 0);
+        glUniform1i(_shader1.getUniLoc("material.specular"), 1);
         glUniform1f(
             _shader1.getUniLoc("material.shininess"), 64.f
         );
