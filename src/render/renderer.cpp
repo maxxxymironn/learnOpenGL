@@ -166,6 +166,7 @@ Renderer::Renderer()
         // _shader1.setUniLoc("material.ambient");
         _shader1.setUniLoc("material.diffuse");
         _shader1.setUniLoc("material.specular");
+        _shader1.setUniLoc("material.emission");
         _shader1.setUniLoc("material.shininess");
 
         glUniform3f(
@@ -196,16 +197,26 @@ Renderer::Renderer()
         //     _shader1.getUniLoc("material.specular"), 0.508273f, 0.508273f, 0.508273f
         // );
         {
+            int texCount = 0;
             std::string texPath(IMAGES_DIR);
             texPath += "container.png";
-            loadTexture(texPath.c_str(), 0);
+            loadTexture(texPath.c_str(), texCount);
+            glUniform1i(_shader1.getUniLoc("material.diffuse"), texCount);
+            ++texCount;
             
             texPath = IMAGES_DIR;
             texPath += "container_border.png";
-            loadTexture(texPath.c_str(), 1);
+            loadTexture(texPath.c_str(), texCount);
+            glUniform1i(_shader1.getUniLoc("material.specular"), texCount);
+            ++texCount;
+
+            texPath = IMAGES_DIR;
+            texPath += "matrix.jpg";
+            loadTexture(texPath.c_str(), texCount);
+            glUniform1i(_shader1.getUniLoc("material.emission"), texCount);
+            ++texCount;
         }
-        glUniform1i(_shader1.getUniLoc("material.diffuse"), 0);
-        glUniform1i(_shader1.getUniLoc("material.specular"), 1);
+        
         glUniform1f(
             _shader1.getUniLoc("material.shininess"), 64.f
         );

@@ -4,6 +4,7 @@ struct Material {
     // vec3 ambient;   // commented because often diffuse = ambient // object self color
     sampler2D diffuse;   // object self color
     sampler2D specular;
+    sampler2D emission;
     float shininess;
 };
 
@@ -40,13 +41,15 @@ void main() {
     // specular
     vec3 reflectedLightDir = reflect(-lightDir, normal);
     vec3 viewDir = normalize(viewPos - vertexPos);
+    
     float specularityCoeff = max(dot(reflectedLightDir, viewDir), 0.f);
-    
-    vec3 test = vec3(1.f) - vec3(texture(material.specular, texCoords));
-    float testCoeff = sign(step(1.f, test.x) + step(1.f, test.y) + step(1.f, test.z));
-    
-    vec3 specular = test * testCoeff * light.specular * pow(specularityCoeff, material.shininess);
+    vec3 specularTex = vec3(texture(material.specular, texCoords));
+    vec3 specular = specularTex * light.specular * pow(specularityCoeff, material.shininess);
     specular *= step(0.f, rawDiffuseCoeff);
+
+    // emission
+    float emissionOutsideBorder = 1.f - step(0.001f, dot(specularTex, specularTex));
+    vec3 emission = vec3(texture(material.emission, texCoords));
     
-    color = vec4(ambient + diffuse + specular, 1.f);
+    color = vec4(ambient + diffuse + specular + emission * emissionOutsideBorder, 1.f);
 }
