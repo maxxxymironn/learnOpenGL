@@ -9,7 +9,7 @@ struct Material {
 };
 
 struct Light {
-    vec3 position;
+    vec3 direction;
     
     vec3 ambient;
     vec3 diffuse;   // ligth self color
@@ -33,7 +33,7 @@ void main() {
     vec3 ambient = vec3(texture(material.diffuse, texCoords)) * light.ambient;
 
     // diffuse
-    vec3 lightDir = normalize(light.position - vertexPos);
+    vec3 lightDir = normalize(-light.direction);
     float rawDiffuseCoeff = dot(normal, lightDir);
     float diffuseCoeff = max(rawDiffuseCoeff, 0.f);
     vec3 diffuse = vec3(texture(material.diffuse, texCoords)) * light.diffuse * diffuseCoeff;
@@ -51,5 +51,5 @@ void main() {
     float emissionOutsideBorder = 1.f - step(0.001f, dot(specularTex, specularTex));
     vec3 emission = vec3(texture(material.emission, texCoords));
     
-    color = vec4(ambient + diffuse + specular + emission * emissionOutsideBorder, 1.f);
+    color = vec4(ambient + diffuse + specular, 1.f);
 }
