@@ -6,7 +6,7 @@
 #include <GLFW/glfw3.h>
 
 #include <string>
-
+#include <iostream>
 
 void Window::_framebufferSizeCallback(GLFWwindow* window, int width, int height) {
     Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
@@ -45,16 +45,20 @@ void Window::_windowFocusCallback(GLFWwindow* window, int focused) {
     Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (self) {
         if (focused) {
-            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            vec2d cursorPos = self->_cursorPos;
             
-            vec2d cursorPos;
-            glfwGetCursorPos(window, &cursorPos.x, &cursorPos.y);
             self->_inputListener->updateMouseStatus(Mouse::X_POS, cursorPos.x);
             self->_inputListener->updateMouseStatus(Mouse::Y_POS, cursorPos.y);
-            
+
+            glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            glfwSetCursorPos(window, cursorPos.x, cursorPos.y);
             glfwSetCursorPosCallback(window, Window::_cursorPosCallback);
         }
         else {
+            vec2d cursorPos;
+            glfwGetCursorPos(window, &cursorPos.x, &cursorPos.y);
+            self->_cursorPos = cursorPos;
+            
             glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
             glfwSetCursorPosCallback(window, nullptr);
         }
@@ -82,6 +86,7 @@ void Window::_scrollCallback(GLFWwindow *window, double xoffset, double yoffset)
 Window::Window(const int x, const int y, const bool vsync)
     : _handle(nullptr)
     , _size(x, y)
+    , _cursorPos(0.0, 0.0)
     , _inputListener(nullptr)
     , _rendererListener(nullptr)
 {

@@ -8,6 +8,7 @@ struct GLFWwindow;
 class Window {    
     GLFWwindow* _handle;
     vec2i _size;
+    vec2d _cursorPos;
 
     IInputListener* _inputListener;
     IRendererListener* _rendererListener;
