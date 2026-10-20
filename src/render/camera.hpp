@@ -43,10 +43,16 @@ public:
                 _position += glm::normalize(glm::cross(_front, _up)) * _speed; break;
             case Direction::LEFT:
                 _position -= glm::normalize(glm::cross(_front, _up)) * _speed; break;
-            case Direction::FORWARD:
-                _position += _front * _speed; break;
-            case Direction::BACK:
-                _position -= _front * _speed; break;
+            case Direction::FORWARD: {
+                glm::vec3 right = glm::normalize(glm::cross(_front, _up));
+                _position -= glm::normalize(glm::cross(right, _up)) * _speed; 
+                break;
+            }
+            case Direction::BACK: {
+                glm::vec3 right = glm::normalize(glm::cross(_front, _up));
+                _position += glm::normalize(glm::cross(right, _up)) * _speed;
+                break;
+            }
             case Direction::UP:
                 _position += _up * _speed; break;
             case Direction::DOWN:
