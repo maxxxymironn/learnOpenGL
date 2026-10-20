@@ -9,11 +9,15 @@ struct Material {
 };
 
 struct Light {
-    vec3 direction;
+    vec3 position;
     
     vec3 ambient;
     vec3 diffuse;   // ligth self color
     vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
 };
 
 in vec3 normalDir;
@@ -28,12 +32,13 @@ uniform Material material;
 
 void main() {
     vec3 normal = normalize(normalDir);
+    vec3 distance = light.position - vertexPos;
 
     // ambient
     vec3 ambient = vec3(texture(material.diffuse, texCoords)) * light.ambient;
 
     // diffuse
-    vec3 lightDir = normalize(-light.direction);
+    vec3 lightDir = normalize(distance);
     float rawDiffuseCoeff = dot(normal, lightDir);
     float diffuseCoeff = max(rawDiffuseCoeff, 0.f);
     vec3 diffuse = vec3(texture(material.diffuse, texCoords)) * light.diffuse * diffuseCoeff;
@@ -50,6 +55,10 @@ void main() {
     // emission
     float emissionOutsideBorder = 1.f - step(0.001f, dot(specularTex, specularTex));
     vec3 emission = vec3(texture(material.emission, texCoords));
+
+    float dl = length(distance);
+    float attenuation = 1.f / (light.constant + light.linear * dl + light.quadratic * dl * dl);
     
-    color = vec4(ambient + diffuse + specular, 1.f);
+    vec3 finalColor = ambient + (diffuse + specular) * attenuation;
+    color = vec4(finalColor, 1.f);
 }

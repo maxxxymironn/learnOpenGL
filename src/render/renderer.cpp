@@ -16,7 +16,7 @@
 namespace {
     constexpr float lightPos[3] = { 2.f, 3.f, -1.f };
     constexpr float lightColor[3] = { 1.f, 1.f, 1.f };
-    
+
     constexpr GLfloat cube[] {
         //  position        texCoord        normales
         // front side
@@ -70,18 +70,18 @@ namespace {
         20, 21, 22,
         22, 23, 21
     };
-    
+
     constexpr glm::vec3 cubePositions[] = {
-        glm::vec3( 0.0f,  0.0f,  0.0f), 
-        glm::vec3( 2.0f,  5.0f, -15.0f), 
-        glm::vec3(-1.5f, -2.2f, -2.5f),  
-        glm::vec3(-3.8f, -2.0f, -12.3f),  
-        glm::vec3( 2.4f, -0.4f, -3.5f),  
-        glm::vec3(-1.7f,  3.0f, -7.5f),  
-        glm::vec3( 1.3f, -2.0f, -2.5f),  
-        glm::vec3( 1.5f,  2.0f, -2.5f), 
-        glm::vec3( 1.5f,  0.2f, -1.5f), 
-        glm::vec3(-1.3f,  1.0f, -1.5f)  
+        glm::vec3( 0.0f,  0.0f,  0.0f),
+        glm::vec3( 2.0f,  5.0f, -15.0f),
+        glm::vec3(-1.5f, -2.2f, -2.5f),
+        glm::vec3(-3.8f, -2.0f, -12.3f),
+        glm::vec3( 2.4f, -0.4f, -3.5f),
+        glm::vec3(-1.7f,  3.0f, -7.5f),
+        glm::vec3( 1.3f, -2.0f, -2.5f),
+        glm::vec3( 1.5f,  2.0f, -2.5f),
+        glm::vec3( 1.5f,  0.2f, -1.5f),
+        glm::vec3(-1.3f,  1.0f, -1.5f)
     };
 
     void loadTexture(const char* texPath, const int texCount) {
@@ -92,7 +92,7 @@ namespace {
             GLuint texture;
             glGenTextures(1, &texture);
             glBindTexture(GL_TEXTURE_2D, texture);
-    
+
             // what to do if texture will be smaller primitive
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
@@ -171,10 +171,13 @@ Renderer::Renderer()
         _shader1.setUniLoc(UniName::VIEW_MTX, "viewMatrix");
         _shader1.setUniLoc(UniName::VIEW_POS, "viewPos");
 
-        _shader1.setUniLoc("light.direction");
+        _shader1.setUniLoc("light.position");
         _shader1.setUniLoc("light.ambient");
         _shader1.setUniLoc("light.diffuse");
         _shader1.setUniLoc("light.specular");
+        _shader1.setUniLoc("light.constant");
+        _shader1.setUniLoc("light.linear");
+        _shader1.setUniLoc("light.quadratic");
 
         _shader1.setUniLoc("material.diffuse");
         _shader1.setUniLoc("material.specular");
@@ -185,14 +188,17 @@ Renderer::Renderer()
             _shader1.getUniLoc(UniName::VIEW_POS),
             _camera.position().x, _camera.position().y, _camera.position().z
         );
-        
-        glUniform3f(_shader1.getUniLoc("light.direction"), 0.0f, 0.0f, -1.f);
+
+        glUniform3f(_shader1.getUniLoc("light.position"), lightPos[0], lightPos[1], lightPos[2]);
         glUniform3f(
             _shader1.getUniLoc("light.diffuse"), lightColor[0], lightColor[1], lightColor[2]
         );
         glUniform3f(_shader1.getUniLoc("light.ambient"), 0.05f, 0.05f, 0.05f);
         glUniform3f(_shader1.getUniLoc("light.specular"), 1.f, 1.f, 1.f);
-        
+        glUniform1f(_shader1.getUniLoc("light.constant"), 1.f);
+        glUniform1f(_shader1.getUniLoc("light.linear"), 0.09f);
+        glUniform1f(_shader1.getUniLoc("light.quadratic"), 0.032f);
+
         {
             int texCount = 0;
             std::string texPath(IMAGES_DIR);
@@ -200,7 +206,7 @@ Renderer::Renderer()
             loadTexture(texPath.c_str(), texCount);
             glUniform1i(_shader1.getUniLoc("material.diffuse"), texCount);
             ++texCount;
-            
+
             texPath = IMAGES_DIR;
             texPath += "container_border.png";
             loadTexture(texPath.c_str(), texCount);
@@ -213,7 +219,7 @@ Renderer::Renderer()
             glUniform1i(_shader1.getUniLoc("material.emission"), texCount);
             ++texCount;
         }
-        
+
         glUniform1f(
             _shader1.getUniLoc("material.shininess"), 64.f
         );
@@ -223,11 +229,11 @@ Renderer::Renderer()
         _shader2.setUniLoc(UniName::PROJECTION_MTX, "projectionMatrix");
         _shader2.setUniLoc(UniName::VIEW_MTX, "viewMatrix");
         _shader2.setUniLoc(UniName::LIGHT_COLOR, "lightColor");
-        
+
         glUniform3f(_shader2.getUniLoc(UniName::LIGHT_COLOR), lightColor[0], lightColor[1], lightColor[2]);
-        
+
         glEnable(GL_DEPTH_TEST);
-        glClearColor(0.0f, 0.0f, 0.0f, 1.f);
+        glClearColor(0.2f, 0.2f, 0.2f, 1.f);
     }
 }
 
@@ -256,7 +262,7 @@ void Renderer::draw() {
         _shader1.getUniLoc(UniName::VIEW_POS),
         _camera.position().x, _camera.position().y, _camera.position().z
     );
-        
+
     glBindVertexArray(_vao);
 
     for (int i = 0; i < 10; ++i) {
@@ -265,22 +271,22 @@ void Renderer::draw() {
         transform = glm::translate(transform, cubePositions[i] * 2.f);
         transform = glm::rotate(transform, glm::radians(rotateDegree), glm::vec3(1.f, 1.f, 0.f));
         glUniformMatrix4fv(_shader1.getUniLoc(UniName::TRANSFORM_MTX), 1, GL_FALSE, glm::value_ptr(transform));
-        
+
         glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
     }
 
-    // _shader2.use();
-    // glUniformMatrix4fv(_shader2.getUniLoc(UniName::PROJECTION_MTX), 1, GL_FALSE, glm::value_ptr(projection));
-    // glUniformMatrix4fv(_shader2.getUniLoc(UniName::VIEW_MTX), 1, GL_FALSE, glm::value_ptr(view));
-    // 
-    // glBindVertexArray(_vao2);
-    // transform = 1.f;
-    // transform = glm::translate(transform, glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
-    // transform = glm::scale(transform, glm::vec3(0.3f, 0.3f, 0.3f));
-    // 
-    // glUniformMatrix4fv(_shader2.getUniLoc(UniName::TRANSFORM_MTX), 1, GL_FALSE, glm::value_ptr(transform));
-    // 
-    // glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
+    _shader2.use();
+    glUniformMatrix4fv(_shader2.getUniLoc(UniName::PROJECTION_MTX), 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(_shader2.getUniLoc(UniName::VIEW_MTX), 1, GL_FALSE, glm::value_ptr(view));
+
+    glBindVertexArray(_vao2);
+    glm::mat4 transform = 1.f;
+    transform = glm::translate(transform, glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
+    transform = glm::scale(transform, glm::vec3(0.3f, 0.3f, 0.3f));
+
+    glUniformMatrix4fv(_shader2.getUniLoc(UniName::TRANSFORM_MTX), 1, GL_FALSE, glm::value_ptr(transform));
+
+    glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
 }
 
 void Renderer::setPolygonMode(const PolygonMode newMode) {
