@@ -9,6 +9,7 @@ enum class Key: unsigned char {
     SHIFT,
     SPACE,
     CTRL,
+    TOGGLE_FLASHLIGHT,
     COUNT
 };
 

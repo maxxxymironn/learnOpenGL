@@ -28,6 +28,7 @@ public:
     void setPolygonMode(const PolygonMode newMode);
 
     void updateAspectRatio(const float aspectRatio) override { _aspectRatio = aspectRatio; }
+    void updateInnerFlashBorder();
     
     void draw();
 };

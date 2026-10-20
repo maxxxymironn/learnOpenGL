@@ -6,7 +6,6 @@
 #include <GLFW/glfw3.h>
 
 #include <string>
-#include <iostream>
 
 void Window::_framebufferSizeCallback(GLFWwindow* window, int width, int height) {
     Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
@@ -36,6 +35,7 @@ void Window::_keyCallback(GLFWwindow *window, int key, int scancode, int action,
             case GLFW_KEY_LEFT_SHIFT: self->_inputListener->updateKeyStatus(Key::SHIFT, action); break;
             case GLFW_KEY_SPACE: self->_inputListener->updateKeyStatus(Key::SPACE, action); break;
             case GLFW_KEY_LEFT_CONTROL: self->_inputListener->updateKeyStatus(Key::CTRL, action); break;
+            case GLFW_KEY_F: self -> _inputListener->updateKeyStatus(Key::TOGGLE_FLASHLIGHT, action); break;
             default: break;
         }
     }

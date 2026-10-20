@@ -34,8 +34,6 @@ int main() {
         
         checkInput(input, renderer, clock);
 
-        float time = window.getTime();
-
         renderer.draw();
         window.endFrame();
     }
@@ -74,6 +72,11 @@ void checkInput(InputHandler& input, Renderer& renderer, TimeHandler& clock) {
     if (input.isKeyDown(Key::CTRL) || input.isKeyPressed(Key::CTRL)) {
         renderer.camera().updatePosition(Direction::DOWN);
     }
+
+    if (input.isKeyPressed(Key::TOGGLE_FLASHLIGHT)) {
+        renderer.updateInnerFlashBorder();
+    }
+    
     if (input.isMouseMoved()) {
         static float yaw = 180.f;
         static float pitch = 0.f;
