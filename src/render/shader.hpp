@@ -1,5 +1,6 @@
 #pragma once
 #include <unordered_map>
+#include <string>
 
 enum class UniName: unsigned char {
     TRANSFORM_MTX,
@@ -14,7 +15,7 @@ enum class UniName: unsigned char {
 struct Shader {
     unsigned int id;
     std::unordered_map<UniName, int> uniLocations;
-    std::unordered_map<const char*, int> uniStrLocations;
+    std::unordered_map<std::string, int> uniStrLocations;
 
     Shader(const char* vertexFilename, const char* fragmentFilename);
     ~Shader();
@@ -22,8 +23,8 @@ struct Shader {
     void use();
     
     void setUniLoc(const UniName uniform, const char* uniName);
-    void setUniLoc(const char* uniform);
+    void setUniLoc(const std::string& uniform);
     
     int getUniLoc(const UniName uniform);
-    int getUniLoc(const char* uniform);
+    int getUniLoc(const std::string& uniform);
 };

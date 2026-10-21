@@ -120,8 +120,8 @@ void Shader::setUniLoc(const UniName uniform, const char* uniName) {
     }
 }
 
-void Shader::setUniLoc(const char* uniform) {
-    uniStrLocations[uniform] = glGetUniformLocation(id, uniform);
+void Shader::setUniLoc(const std::string& uniform) {
+    uniStrLocations[uniform] = glGetUniformLocation(id, uniform.data());
     if (uniStrLocations[uniform] == -1) {
         std::string msg("Uniform '");
         msg += uniform; 
@@ -130,7 +130,7 @@ void Shader::setUniLoc(const char* uniform) {
     }
 }
 
-int Shader::getUniLoc(const UniName uniform) { 
+int Shader::getUniLoc(const UniName uniform) {
     auto it = uniLocations.find(uniform);
     if (it == uniLocations.end()) {
         std::string err("Uniform with type_id='");
@@ -142,7 +142,7 @@ int Shader::getUniLoc(const UniName uniform) {
     return it->second;
 }
 
-int Shader::getUniLoc(const char* uniform) {
+int Shader::getUniLoc(const std::string& uniform) {
     auto it = uniStrLocations.find(uniform);
     if (it == uniStrLocations.end()) {
         std::string err("Uniform with name='");

@@ -12,10 +12,14 @@ target_compile_options(opengl PRIVATE -Wall -Wextra -Wpedantic)
 
 target_sources(opengl PRIVATE
   src/main.cpp
-  src/render/renderer.cpp
-  src/window/window.cpp
+  
   src/core/logger.cpp
+  src/core/timeHandler.cpp
+  
+  src/render/renderer.cpp
   src/render/shader.cpp
+  
+  src/window/window.cpp
 )
 
 target_compile_definitions(opengl PRIVATE

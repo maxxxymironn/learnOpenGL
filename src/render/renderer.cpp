@@ -14,9 +14,6 @@
 #include <string>
 
 namespace {
-    constexpr float lightPos[3] = { 2.f, 3.f, -1.f };
-    constexpr float lightColor[3] = { 1.f, 1.f, 1.f };
-
     bool _toggleOn = false;
 
     constexpr GLfloat cube[] {
@@ -84,6 +81,17 @@ namespace {
         glm::vec3( 1.5f,  2.0f, -2.5f),
         glm::vec3( 1.5f,  0.2f, -1.5f),
         glm::vec3(-1.3f,  1.0f, -1.5f)
+    };
+
+    constexpr float POINT_COL[] = { 0.5f, 0.3f, 0.f };
+    
+    constexpr int POINT_LIGHT_NUM = 5;
+    constexpr glm::vec3 lightPointPos[POINT_LIGHT_NUM] = {
+        glm::vec3(-1.f, 3.f, -2.f),
+       	glm::vec3( 0.7f,  0.2f,  2.0f),
+    	glm::vec3( 2.3f, -3.3f, -4.0f),
+    	glm::vec3(-4.0f,  2.0f, -12.0f),
+    	glm::vec3( 0.0f,  0.0f, -3.0f)
     };
 
     void loadTexture(const char* texPath, const int texCount) {
@@ -168,46 +176,115 @@ Renderer::Renderer()
         glBindVertexArray(0);
 
         _shader1.use();
+        /* getting uniforms locations */
+        // matrixes
         _shader1.setUniLoc(UniName::TRANSFORM_MTX, "transformMatrix");
         _shader1.setUniLoc(UniName::PROJECTION_MTX, "projectionMatrix");
         _shader1.setUniLoc(UniName::VIEW_MTX, "viewMatrix");
+
+        // miscellaneous
+        _shader1.setUniLoc("ambientLight");
         _shader1.setUniLoc(UniName::VIEW_POS, "viewPos");
 
-        _shader1.setUniLoc("light.position");
-        _shader1.setUniLoc("light.direction");
-        _shader1.setUniLoc("light.innerBorder");
-        _shader1.setUniLoc("light.outerBorder");
-        _shader1.setUniLoc("light.ambient");
-        _shader1.setUniLoc("light.diffuse");
-        _shader1.setUniLoc("light.specular");
-        _shader1.setUniLoc("light.constant");
-        _shader1.setUniLoc("light.linear");
-        _shader1.setUniLoc("light.quadratic");
+        // direct light
+        _shader1.setUniLoc("directLight.direction");
+        _shader1.setUniLoc("directLight.diffuse");
+        _shader1.setUniLoc("directLight.specular");
 
+        // point light
+        for (int i = 0; i < POINT_LIGHT_NUM; ++i) {
+            std::string uniformNum("pointLight[");
+            uniformNum += '0' + i;
+            uniformNum += "].";
+
+            std::string uniformAttrib = uniformNum + "position";
+            _shader1.setUniLoc(uniformAttrib);
+            uniformAttrib = uniformNum + "diffuse";
+            _shader1.setUniLoc(uniformAttrib);
+            uniformAttrib = uniformNum + "specular";
+            _shader1.setUniLoc(uniformAttrib);
+            uniformAttrib = uniformNum + "constant";
+            _shader1.setUniLoc(uniformAttrib);
+            uniformAttrib = uniformNum + "linear";
+            _shader1.setUniLoc(uniformAttrib);
+            uniformAttrib = uniformNum + "quadratic";
+            _shader1.setUniLoc(uniformAttrib);
+        }
+
+        // flashlight (spotlight)
+        _shader1.setUniLoc("flashlight.position");
+        _shader1.setUniLoc("flashlight.direction");
+        _shader1.setUniLoc("flashlight.innerBorder");
+        _shader1.setUniLoc("flashlight.outerBorder");
+        _shader1.setUniLoc("flashlight.diffuse");
+        _shader1.setUniLoc("flashlight.specular");
+        _shader1.setUniLoc("flashlight.constant");
+        _shader1.setUniLoc("flashlight.linear");
+        _shader1.setUniLoc("flashlight.quadratic");
+
+        // material
         _shader1.setUniLoc("material.diffuse");
         _shader1.setUniLoc("material.specular");
         _shader1.setUniLoc("material.shininess");
 
+        /* setting uniforms */
+        // miscellaneous
         glUniform3f(
             _shader1.getUniLoc(UniName::VIEW_POS),
             _camera.position().x, _camera.position().y, _camera.position().z
         );
+        glUniform3f(_shader1.getUniLoc("ambientLight"), 0.05f, 0.05f, 0.05f);
 
-        glUniform3f(_shader1.getUniLoc("light.position"), 0.f, 0.f, 5.f);
-        glUniform3f(_shader1.getUniLoc("light.direction"), 0.f, 0.f, -1.f);
-        glUniform1f(_shader1.getUniLoc("light.innerBorder"), -1.f); // when flashligh on = glm::cos(glm::radians(12.5f))
-        glUniform1f(_shader1.getUniLoc("light.outerBorder"), glm::cos(glm::radians(17.5f)));
+        // direct light
+        glUniform3f(_shader1.getUniLoc("directLight.direction"), -1.f, 0.f, 0.f);
+        glUniform3f(_shader1.getUniLoc("directLight.diffuse"), 0.3f, 0.3f, 0.3f);
+        glUniform3f(_shader1.getUniLoc("directLight.specular"), 0.3f, 0.3f, 0.3f);
 
+        // point light
+        for (int i = 0; i < POINT_LIGHT_NUM; ++i) {
+            std::string uniformNum("pointLight[");
+            uniformNum += '0' + i;
+            uniformNum += "].";
+
+            std::string uniformAttrib = uniformNum + "position";
+            glUniform3f(
+                _shader1.getUniLoc(uniformAttrib),
+                lightPointPos[i].x, lightPointPos[i].y, lightPointPos[i].z
+            );
+            uniformAttrib = uniformNum + "diffuse";
+            glUniform3f(
+                _shader1.getUniLoc(uniformAttrib), POINT_COL[0], POINT_COL[1], POINT_COL[2]
+            );
+            uniformAttrib = uniformNum + "specular";
+            glUniform3f(
+                _shader1.getUniLoc(uniformAttrib), POINT_COL[0], POINT_COL[1], POINT_COL[2]
+            );
+            uniformAttrib = uniformNum + "constant";
+            glUniform1f(_shader1.getUniLoc(uniformAttrib), 1.f);
+            uniformAttrib = uniformNum + "linear";
+            glUniform1f(_shader1.getUniLoc(uniformAttrib), 0.4f);
+            uniformAttrib = uniformNum + "quadratic";
+            glUniform1f(_shader1.getUniLoc(uniformAttrib), 0.001f);
+        }
+
+        // flashlight (spotligh)
         glUniform3f(
-            _shader1.getUniLoc("light.diffuse"), lightColor[0], lightColor[1], lightColor[2]
+            _shader1.getUniLoc("flashlight.position"),
+            _camera.position().x, _camera.position().y, _camera.position().z
         );
-        glUniform3f(_shader1.getUniLoc("light.ambient"), 0.01f, 0.01f, 0.01f);
-        glUniform3f(_shader1.getUniLoc("light.specular"), 1.f, 1.f, 1.f);
+        glUniform3f(
+            _shader1.getUniLoc("flashlight.direction"),
+            _camera.front().x, _camera.front().y, _camera.front().z
+        );
+        glUniform1f(_shader1.getUniLoc("flashlight.innerBorder"), glm::cos(glm::radians(12.5f)));
+        glUniform1f(_shader1.getUniLoc("flashlight.outerBorder"), 2.f);
+        glUniform3f(_shader1.getUniLoc("flashlight.diffuse"), 1.f, 1.f, 1.f);
+        glUniform3f(_shader1.getUniLoc("flashlight.specular"), 1.f, 1.f, 1.f);
+        glUniform1f(_shader1.getUniLoc("flashlight.constant"), 1.f);
+        glUniform1f(_shader1.getUniLoc("flashlight.linear"), 0.01f);
+        glUniform1f(_shader1.getUniLoc("flashlight.quadratic"), 0.001f);
 
-        glUniform1f(_shader1.getUniLoc("light.constant"), 1.f);
-        glUniform1f(_shader1.getUniLoc("light.linear"), 0.05f);
-        glUniform1f(_shader1.getUniLoc("light.quadratic"), 0.0001f);
-
+        // material
         {
             int texCount = 0;
             std::string texPath(IMAGES_DIR);
@@ -222,21 +299,20 @@ Renderer::Renderer()
             glUniform1i(_shader1.getUniLoc("material.specular"), texCount);
             ++texCount;
         }
-
         glUniform1f(
             _shader1.getUniLoc("material.shininess"), 64.f
         );
 
-//         _shader2.use();
-//         _shader2.setUniLoc(UniName::TRANSFORM_MTX, "transformMatrix");
-//         _shader2.setUniLoc(UniName::PROJECTION_MTX, "projectionMatrix");
-//         _shader2.setUniLoc(UniName::VIEW_MTX, "viewMatrix");
-//         _shader2.setUniLoc(UniName::LIGHT_COLOR, "lightColor");
-//
-//         glUniform3f(_shader2.getUniLoc(UniName::LIGHT_COLOR), lightColor[0], lightColor[1], lightColor[2]);
+        _shader2.use();
+        _shader2.setUniLoc(UniName::TRANSFORM_MTX, "transformMatrix");
+        _shader2.setUniLoc(UniName::PROJECTION_MTX, "projectionMatrix");
+        _shader2.setUniLoc(UniName::VIEW_MTX, "viewMatrix");
+        _shader2.setUniLoc(UniName::LIGHT_COLOR, "lightColor");
+
+        glUniform3f(_shader2.getUniLoc(UniName::LIGHT_COLOR), POINT_COL[0], POINT_COL[1], POINT_COL[2]);
 
         glEnable(GL_DEPTH_TEST);
-        glClearColor(0.f, 0.f, 0.f, 1.f);
+        glClearColor(0.2f, 0.2f, 0.2f, 1.f);
     }
 }
 
@@ -267,11 +343,11 @@ void Renderer::draw() {
     );
 
     glUniform3f(
-        _shader1.getUniLoc("light.position"),
+        _shader1.getUniLoc("flashlight.position"),
         _camera.position().x, _camera.position().y, _camera.position().z
     );
     glUniform3f(
-        _shader1.getUniLoc("light.direction"),
+        _shader1.getUniLoc("flashlight.direction"),
         _camera.front().x, _camera.front().y, _camera.front().z
     );
 
@@ -287,18 +363,23 @@ void Renderer::draw() {
         glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
     }
 
-//     _shader2.use();
-//     glUniformMatrix4fv(_shader2.getUniLoc(UniName::PROJECTION_MTX), 1, GL_FALSE, glm::value_ptr(projection));
-//     glUniformMatrix4fv(_shader2.getUniLoc(UniName::VIEW_MTX), 1, GL_FALSE, glm::value_ptr(view));
-//
-//     glBindVertexArray(_vao2);
-//     glm::mat4 transform = 1.f;
-//     transform = glm::translate(transform, glm::vec3(lightPos[0], lightPos[1], lightPos[2]));
-//     transform = glm::scale(transform, glm::vec3(0.3f, 0.3f, 0.3f));
-//
-//     glUniformMatrix4fv(_shader2.getUniLoc(UniName::TRANSFORM_MTX), 1, GL_FALSE, glm::value_ptr(transform));
-//
-//     glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
+    _shader2.use();
+    glUniformMatrix4fv(_shader2.getUniLoc(UniName::PROJECTION_MTX), 1, GL_FALSE, glm::value_ptr(projection));
+    glUniformMatrix4fv(_shader2.getUniLoc(UniName::VIEW_MTX), 1, GL_FALSE, glm::value_ptr(view));
+
+    glBindVertexArray(_vao2);
+
+    for (int i = 0; i < POINT_LIGHT_NUM; ++i) {
+        glm::mat4 transform = 1.f;
+        transform = glm::translate(transform, lightPointPos[i]);
+        transform = glm::scale(transform, glm::vec3(0.3f, 0.3f, 0.3f));
+    
+        glUniformMatrix4fv(_shader2.getUniLoc(UniName::TRANSFORM_MTX), 1, GL_FALSE, glm::value_ptr(transform));
+    
+        glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
+    }
+
+    glUseProgram(0);
 }
 
 void Renderer::setPolygonMode(const PolygonMode newMode) {
@@ -311,5 +392,6 @@ void Renderer::setPolygonMode(const PolygonMode newMode) {
 
 void Renderer::updateInnerFlashBorder() {
     _toggleOn = !_toggleOn;
-    glUniform1f(_shader1.getUniLoc("light.innerBorder"), _toggleOn ? glm::cos(glm::radians(12.5f)) : -1.f);
+    _shader1.use();
+    glUniform1f(_shader1.getUniLoc("flashlight.outerBorder"), _toggleOn ? glm::cos(glm::radians(17.5f)) : 2.f);
 }

@@ -30,7 +30,7 @@ int main() {
     while(!window.shouldClose()) {
         if constexpr (!VSYNC) clock.waitFramerate(window.getTime());
         clock.update(window.getTime());
-        if (clock.newFps) window.refreshTitle(clock.prevFrameAccumulator);
+        if (clock.isNewFps()) window.refreshTitle(clock.getNewFps());
         
         checkInput(input, renderer, clock);
 
@@ -51,7 +51,7 @@ void checkInput(InputHandler& input, Renderer& renderer, TimeHandler& clock) {
     }
 
     renderer.camera().updateSpeed(
-        (input.isKeyDown(Key::SHIFT) ? 20.f : 5.f) * clock.frameTime
+        (input.isKeyDown(Key::SHIFT) ? 20.f : 5.f) * clock.getFrametime()
     );
         
     if (input.isKeyDown(Key::RIGHT) || input.isKeyPressed(Key::RIGHT)) {
