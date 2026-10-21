@@ -1,7 +1,6 @@
 #version 330 core
 
 struct Material {
-    // vec3 ambient;   // commented because often diffuse = ambient // object self color
     sampler2D diffuse;   // object self color
     sampler2D specular;
     sampler2D emission;
@@ -17,6 +16,10 @@ struct Light {
     vec3 ambient;
     vec3 diffuse;   // ligth self color
     vec3 specular;
+
+    float constant;
+    float linear;
+    float quadratic;
 };
 
 in vec3 normalDir;
@@ -33,10 +36,8 @@ void main() {
     // ambient
     vec3 ambient = vec3(texture(material.diffuse, texCoords)) * light.ambient;
     
-    float theta = dot(normalize(-light.direction), normalize(light.position - vertexPos));
-    
-    if (theta > light.outerBorder) {
-        float borderCoeff = clamp((theta - light.outerBorder) / (light.innerBorder - light.outerBorder), 0.f, 1.f);
+    float theta = dot(normalize(-light.direction), normalize(light.position - vertexPos));    
+    if (theta > light.outerBorder) {        
         vec3 normal = normalize(normalDir);
         vec3 distance = light.position - vertexPos;
     
@@ -54,8 +55,14 @@ void main() {
         vec3 specularTex = vec3(texture(material.specular, texCoords));
         vec3 specular = specularTex * light.specular * pow(specularityCoeff, material.shininess);
         specular *= step(0.f, rawDiffuseCoeff);
+
+        // coeffs
+        float borderCoeff = clamp((theta - light.outerBorder) / (light.innerBorder - light.outerBorder), 0.f, 1.f);
+
+        float dl = length(distance);
+        float attenuationCoeff = 1.f / (light.constant + dl * light.linear + dl * dl * light.quadratic);
         
-        vec3 finalColor = ambient + (diffuse + specular) * borderCoeff;
+        vec3 finalColor = ambient + (diffuse + specular) * borderCoeff * attenuationCoeff;
         color = vec4(finalColor, 1.f);
     } 
     else {
