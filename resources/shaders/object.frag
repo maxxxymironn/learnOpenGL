@@ -8,7 +8,7 @@ struct Material {
 
 struct DirectionalLigth {
     vec3 direction;
-    
+
     vec3 diffuse;
     vec3 specular;
 };
@@ -18,7 +18,7 @@ struct PointLight {
 
     vec3 diffuse;
     vec3 specular;
-    
+
     float constant;
     float linear;
     float quadratic;
@@ -30,10 +30,10 @@ struct Flashlight {
 
     vec3 diffuse;
     vec3 specular;
-    
+
     float innerBorder;
     float outerBorder;
-    
+
     float constant;
     float linear;
     float quadratic;
@@ -75,7 +75,7 @@ void main() {
 
 vec3 calculateDirectLight(vec3 normal, vec3 viewDir) {
     vec3 lightDir = normalize(-directLight.direction);
-    
+
     // diffuse
     float diffuseCoeff = max(dot(normal, lightDir), 0.f);
     vec3 diffuse = texture(material.diffuse, texCoords).xyz * directLight.diffuse * diffuseCoeff;
@@ -91,7 +91,7 @@ vec3 calculateDirectLight(vec3 normal, vec3 viewDir) {
 
 vec3 calculatePointLight(vec3 normal, vec3 viewDir, PointLight light) {
     vec3 lightDir = normalize(light.position - vertexPos);
-    
+
     // diffuse
     float diffuseCoeff = max(dot(lightDir, normal), 0.f);
     vec3 diffuse = texture(material.diffuse, texCoords).xyz * light.diffuse * diffuseCoeff;
@@ -105,7 +105,7 @@ vec3 calculatePointLight(vec3 normal, vec3 viewDir, PointLight light) {
     // attenuation
     float distance = length(light.position - vertexPos);
     float attenuationCoeff = 1.f / (light.constant + distance * light.linear + distance * distance * light.quadratic);
-    
+
     return (diffuse + specular) * attenuationCoeff;
 }
 

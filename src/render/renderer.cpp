@@ -83,8 +83,8 @@ namespace {
         glm::vec3(-1.3f,  1.0f, -1.5f)
     };
 
-    constexpr float POINT_COL[] = { 0.5f, 0.3f, 0.f };
-    
+    constexpr float POINT_COL[] = { 0.f, 1.f, 0.3f };
+
     constexpr int POINT_LIGHT_NUM = 5;
     constexpr glm::vec3 lightPointPos[POINT_LIGHT_NUM] = {
         glm::vec3(-1.f, 3.f, -2.f),
@@ -168,8 +168,9 @@ Renderer::Renderer()
 
         glEnableVertexAttribArray(0);
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 8, (GLvoid*)0);
-        glEnableVertexAttribArray(1);
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 8, (GLvoid*)(5 * sizeof(GLfloat)));
+        // 2 because i want to test what happened if skip location=1
+        glEnableVertexAttribArray(2);
+        glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 8, (GLvoid*)(3 * sizeof(GLfloat)));
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _ebo);
 
@@ -237,8 +238,8 @@ Renderer::Renderer()
 
         // direct light
         glUniform3f(_shader1.getUniLoc("directLight.direction"), -1.f, 0.f, 0.f);
-        glUniform3f(_shader1.getUniLoc("directLight.diffuse"), 0.3f, 0.3f, 0.3f);
-        glUniform3f(_shader1.getUniLoc("directLight.specular"), 0.3f, 0.3f, 0.3f);
+        glUniform3f(_shader1.getUniLoc("directLight.diffuse"), 1.f, 1.f, 1.f);
+        glUniform3f(_shader1.getUniLoc("directLight.specular"), 1.f, 1.f, 1.f);
 
         // point light
         for (int i = 0; i < POINT_LIGHT_NUM; ++i) {
@@ -285,8 +286,8 @@ Renderer::Renderer()
         glUniform1f(_shader1.getUniLoc("flashlight.quadratic"), 0.001f);
 
         // material
+        int texCount = 0;
         {
-            int texCount = 0;
             std::string texPath(IMAGES_DIR);
             texPath += "container.png";
             loadTexture(texPath.c_str(), texCount);
@@ -308,11 +309,20 @@ Renderer::Renderer()
         _shader2.setUniLoc(UniName::PROJECTION_MTX, "projectionMatrix");
         _shader2.setUniLoc(UniName::VIEW_MTX, "viewMatrix");
         _shader2.setUniLoc(UniName::LIGHT_COLOR, "lightColor");
+        _shader2.setUniLoc("lightPointTex");
+
+        {
+            std::string texPath(IMAGES_DIR);
+            texPath += "lightPoint.png";
+            loadTexture(texPath.c_str(), texCount);
+            glUniform1i(_shader2.getUniLoc("lightPointTex"), texCount);
+            texCount++;
+        }
 
         glUniform3f(_shader2.getUniLoc(UniName::LIGHT_COLOR), POINT_COL[0], POINT_COL[1], POINT_COL[2]);
 
         glEnable(GL_DEPTH_TEST);
-        glClearColor(0.2f, 0.2f, 0.2f, 1.f);
+        glClearColor(0.f, 0.f, 0.f, 1.f);
     }
 }
 
@@ -373,9 +383,9 @@ void Renderer::draw() {
         glm::mat4 transform = 1.f;
         transform = glm::translate(transform, lightPointPos[i]);
         transform = glm::scale(transform, glm::vec3(0.3f, 0.3f, 0.3f));
-    
+
         glUniformMatrix4fv(_shader2.getUniLoc(UniName::TRANSFORM_MTX), 1, GL_FALSE, glm::value_ptr(transform));
-    
+
         glDrawElements(GL_TRIANGLES, sizeof(indices) / sizeof(GLuint), GL_UNSIGNED_INT, 0);
     }
 

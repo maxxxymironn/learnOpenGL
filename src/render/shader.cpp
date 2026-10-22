@@ -4,9 +4,11 @@
 
 #include "glad/glad.h"
 
+#include <stdexcept>
 #include <string>
 #include <sstream>
 #include <fstream>
+#include <iostream>
 
 namespace {
     std::string loadShaderSource(const char* filename) {
@@ -121,8 +123,8 @@ void Shader::setUniLoc(const UniName uniform, const char* uniName) {
 }
 
 void Shader::setUniLoc(const std::string& uniform) {
-    uniStrLocations[uniform] = glGetUniformLocation(id, uniform.data());
-    if (uniStrLocations[uniform] == -1) {
+    uniStrLocations[uniform.data()] = glGetUniformLocation(id, uniform.data());
+    if (uniStrLocations[uniform.data()] == -1) {
         std::string msg("Uniform '");
         msg += uniform; 
         msg += "' not found";
@@ -149,7 +151,7 @@ int Shader::getUniLoc(const std::string& uniform) {
         err += uniform;
         err += "' not created";
         Logger::getInstance().printErr(err.c_str());
-        throw;
+        throw std::runtime_error(err.c_str());
     }
     return it->second;
 }
