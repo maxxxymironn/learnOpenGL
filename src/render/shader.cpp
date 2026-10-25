@@ -110,7 +110,7 @@ Shader::Shader(const char* vertexFilename, const char* fragmentFilename)
 
 Shader::~Shader() { if (id) glDeleteProgram(id); }
 
-void Shader::use() { glUseProgram(id); }
+void Shader::use() const { glUseProgram(id); }
 
 void Shader::setUniLoc(const UniName uniform, const char* uniName) {
     uniLocations[uniform] = glGetUniformLocation(id, uniName);

@@ -20,7 +20,7 @@ struct Shader {
     Shader(const char* vertexFilename, const char* fragmentFilename);
     ~Shader();
 
-    void use();
+    void use() const;
     
     void setUniLoc(const UniName uniform, const char* uniName);
     void setUniLoc(const std::string& uniform);

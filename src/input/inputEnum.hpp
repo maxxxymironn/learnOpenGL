@@ -10,6 +10,7 @@ enum class Key: unsigned char {
     SPACE,
     CTRL,
     TOGGLE_FLASHLIGHT,
+    TOGGLE_SHADERS,
     COUNT
 };
 

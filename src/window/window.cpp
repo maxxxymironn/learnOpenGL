@@ -21,6 +21,12 @@ void Window::_framebufferSizeCallback(GLFWwindow* window, int width, int height)
 void Window::_keyCallback(GLFWwindow *window, int key, int scancode, int action, int mods) {
     Window* self = static_cast<Window*>(glfwGetWindowUserPointer(window));
     if (self) {
+        if (mods == GLFW_MOD_ALT) {
+            switch (key) {
+                case GLFW_KEY_R: self ->_inputListener->updateKeyStatus(Key::TOGGLE_SHADERS, action); return;
+                default: break;
+            }
+        }
         switch (key) {
             case GLFW_KEY_ESCAPE: glfwSetWindowShouldClose(window, GLFW_TRUE); break;
             case GLFW_KEY_M: self->_inputListener->updateKeyStatus(Key::POLYGON_MODE, action); break;
@@ -35,7 +41,7 @@ void Window::_keyCallback(GLFWwindow *window, int key, int scancode, int action,
             case GLFW_KEY_LEFT_SHIFT: self->_inputListener->updateKeyStatus(Key::SHIFT, action); break;
             case GLFW_KEY_SPACE: self->_inputListener->updateKeyStatus(Key::SPACE, action); break;
             case GLFW_KEY_LEFT_CONTROL: self->_inputListener->updateKeyStatus(Key::CTRL, action); break;
-            case GLFW_KEY_F: self -> _inputListener->updateKeyStatus(Key::TOGGLE_FLASHLIGHT, action); break;
+            case GLFW_KEY_F: self ->_inputListener->updateKeyStatus(Key::TOGGLE_FLASHLIGHT, action); break;
             default: break;
         }
     }

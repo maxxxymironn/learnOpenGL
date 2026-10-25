@@ -72,9 +72,11 @@ void checkInput(InputHandler& input, Renderer& renderer, TimeHandler& clock) {
     if (input.isKeyDown(Key::CTRL) || input.isKeyPressed(Key::CTRL)) {
         renderer.camera().updatePosition(Direction::DOWN);
     }
-
     if (input.isKeyPressed(Key::TOGGLE_FLASHLIGHT)) {
         renderer.updateInnerFlashBorder();
+    }
+    if (input.isKeyPressed(Key::TOGGLE_SHADERS)) {
+        renderer.toggleShaderMode();
     }
     
     if (input.isMouseMoved()) {
